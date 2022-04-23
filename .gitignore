@@ -1,0 +1,7 @@
+
+__pycache__/
+*.bin
+*.lst
+archive
+
+preferences_file.json
