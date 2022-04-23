@@ -1,0 +1,1084 @@
+INTERTON VC 4000 CODING GUIDE
+-----------------------------
+
+This document was written on 7/2/07, and last updated on 13/4/20, by
+James Jacobs of Amigan Software.
+
+Information herein is believed to be generally accurate, though most is
+tentative and incomplete. If you have anything to contribute, please email
+amigansoftware@gmail.com. Thanks to Manfred Schneider and Peter Trauner
+for their contributions.
+
+Disassembly, comprehension and patching can be done in the same way as
+described in the Emerson Arcadia 2001 Coding Guide.
+
+ANNOTATE supports the Interton VC 4000; remember to use the appropriate
+INTERTON_? argument. HOWDIF is also of course usable for this machine
+(though the Arcadia character set output is not relevant for it).
+
+Annotated disassemblies of every available Interton ROM are now
+available, so therefore you should not normally need to use DASMX or
+ANNOTATE.
+
+Some available disassemblies were made using older versions of ANNOTATE;
+the memory maps included in such disassemblies are obsolete and
+inaccurate. You should always use the latest version of ANNOTATE.
+
+Memory Maps
+-----------
+
+"Motherboard RAM" is RAM that is built into the console unit. "Cartridge
+RAM" is additional RAM that is provided onboard certain game cartridges.
+"PVI RAM" is motherboard RAM in the $1Fxx area.
+
+There are four different cartridge configurations known:
+
+A: 2K ROM/EPROM + 0K RAM (most games):
+  $0000..$07FF: game ROM/EPROM (2K)
+  $0800..$15FF: unused
+  $1600..$17FF: mirror of $1E00..$1FFF
+  $1800..$1DFF: unused
+  $1E00..$1EFF: "I/O area"
+  $1F00..$1FFF: PVI area
+  $2000..$3FFF: mirror of $0000..$1FFF
+  $4000..$5FFF: mirror of $0000..$1FFF
+  $6000..$7FFF: mirror of $0000..$1FFF
+B: 4K ROM/EPROM + 0K RAM (some games):
+  $0000..$0FFF: game ROM/EPROM (4K)
+  $1000..$15FF: unused
+  $1600..$17FF: mirror of $1E00..$1FFF
+  $1800..$1DFF: unused
+  $1E00..$1EFF: "I/O area"
+  $1F00..$1FFF: PVI area
+  $2000..$3FFF: mirror of $0000..$1FFF
+  $4000..$5FFF: mirror of $0000..$1FFF
+  $6000..$7FFF: mirror of $0000..$1FFF
+C: 4K ROM + 1K RAM (Backgammon, Chess 1 and Draughts only):
+  $0000..$0FFF: game ROM (4K)
+  $1000..$13FF: 1K of cartridge RAM
+  $1400..$15FF: mirror of $1000..$11FF
+  $1600..$17FF: mirror of $1E00..$1FFF
+  $1800..$1DFF: mirror of $1000..$15FF
+  $1E00..$1EFF: "I/O area"
+  $1F00..$1FFF: PVI area
+  $2000..$3FFF: mirror of $0000..$1FFF
+  $4000..$5FFF: mirror of $0000..$1FFF
+  $6000..$7FFF: mirror of $0000..$1FFF
+D: 6K ROM + 1K RAM (Chess 2 only):
+  $0000..$15FF: game ROM (6K ROM chip, but only 5ï¿½K is usable)
+  $1600..$17FF: mirror of $1E00..$1FFF (obscures 512 bytes of ROM)
+  $1800..$1BFF: 1K of cartridge RAM
+  $1C00..$1DFF: mirror of $1800..$19FF
+  $1E00..$1EFF: "I/O area"
+  $1F00..$1FFF: PVI area
+  $2000..$3FFF: mirror of $0000..$1FFF
+  $4000..$5FFF: mirror of $0000..$1FFF
+  $6000..$7FFF: mirror of $0000..$1FFF
+
+;Hardware Equates/Memory Map (Interton VC 4000)---------------------------
+;                   $0000..$07FF: (R/-)  A-D: ROM
+;                   $0800..$08BF: (-/-)  A:   unused
+;                                 (R/-)  B-D: ROM
+;                   $08C0..$0FFF: (-/-)  A:   unused
+;                                 (R/-)  B-D: ROM
+;                   $1000..$13FF: (-/-)  A-B: unused
+;                                 (R/W)  C:   1K of cartridge RAM
+;                                 (R/-)  D:   ROM
+;                   $1400..$15FF: (-/-)  A-B: unused
+;                                 (R/W)  C:   mirror of $1000..$11FF
+;                                 (R/-)  D:   ROM
+;                   $1600..$17FF: (*/*)  A-D: mirror of $1E00..$1FFF
+;                   $1800..$1BFF: (-/-)  A-B: unused
+;                                 (R/W)  C:   mirror of $1000..$13FF
+;                                 (R/W)  D:   1K of cartridge RAM
+;                   $1C00..$1DFF: (-/-)  A-B: unused
+;                                 (R/W)  C:   mirror of $1400..$15FF
+;                                 (R/W)  D:   mirror of $1800..$19FF
+;                   $1E00..$1E7F: (-/-)  unused
+NOISE           equ $1E80        ;(?/W)  noise register
+;    bits 7..6:                          volume:
+;                                         %00 = high (full?)
+;                                         %01 = medium high (3/4?)
+;                                         %10 = medium low (2/4?)
+;                                         %11 = low (1/4?)
+;    bit  5:                             bright backgrounds on/off
+;    bit  4:                             start explosion (>= 20 msec)
+;    bit  3:                             noise on/off
+;    bit  2:                             PVI tone on/off
+;    bits 1..0:                          unmapped
+;                   $1E81..$1E87: (-/-)  unmapped
+P1LEFTKEYS      equ $1E88        ;(R/-)
+;    bit  7:                             p1 (left)  '1' button
+;    bit  6:                             p1 (left)  '4' button
+;    bit  5:                             p1 (left)  '7' button
+;    bit  4:                             p1 (left)  'C' button (Clear)
+;    bits 3..0:                          unused
+P1MIDDLEKEYS    equ $1E89        ;(R/-)
+;    bit  7:                             p1 (left)  '2' button
+;    bit  6:                             p1 (left)  '5' button
+;    bit  5:                             p1 (left)  '8' button
+;    bit  4:                             p1 (left)  '0' button
+;    bits 3..0:                          unused
+P1RIGHTKEYS     equ $1E8A        ;(R/-)
+;    bit  7:                             p1 (left)  '3' button
+;    bit  6:                             p1 (left)  '6' button
+;    bit  5:                             p1 (left)  '9' button
+;    bit  4:                             p1 (left)  'E' button (Enter)
+;    bits 3..0:                          unused
+CONSOLE         equ $1E8B        ;(R/-)
+;    bit  7:                             'SELECT'       button
+;    bit  6:                             'START'        button
+;    bits 5..0:                          unused
+P2LEFTKEYS      equ $1E8C        ;(R/-)
+;    bit  7:                             p2 (right) '1' button
+;    bit  6:                             p2 (right) '4' button
+;    bit  5:                             p2 (right) '7' button
+;    bit  4:                             p2 (right) 'C' button (Clear)
+;    bits 3..0:                          unused
+P2MIDDLEKEYS    equ $1E8D        ;(R/-)
+;    bit  7:                             p2 (right) '2' button
+;    bit  6:                             p2 (right) '5' button
+;    bit  5:                             p2 (right) '8' button
+;    bit  4:                             p2 (right) '0' button
+;    bits 3..0:                          unused
+P2RIGHTKEYS     equ $1E8E        ;(R/-)
+;    bit  7:                             p2 (right) '3' button
+;    bit  6:                             p2 (right) '6' button
+;    bit  5:                             p2 (right) '9' button
+;    bit  4:                             p2 (right) 'E' button (Enter)
+;    bits 3..0:                          unused
+;                   $1E8F..$1E97  (-/-)  unmapped
+;                   $1E98..$1E9B  (R/-)  mirror of $1E88..$1E8B
+;                   $1E9C..$1EA7  (-/-)  unmapped
+;                   $1EA8..$1EAE  (R/-)  mirror of $1E88..$1E8E
+;                   $1EAF..$1EB7  (-/-)  unmapped
+;                   $1EB8..$1EBB  (R/-)  mirror of $1E88..$1E8B
+;                   $1EBC..$1EC7  (-/-)  unmapped
+;                   $1EC8..$1ECE  (R/-)  mirror of $1E88..$1E8E
+;                   $1ECF..$1ED7  (-/-)  unmapped
+;                   $1ED8..$1EDB  (R/-)  mirror of $1E88..$1E8B
+;                   $1EDC..$1EE7  (-/-)  unmapped
+;                   $1EE8..$1EEE  (R/-)  mirror of $1E88..$1E8E
+;                   $1EEF..$1EF7  (-/-)  unmapped
+;                   $1EF8..$1EFB  (R/-)  mirror of $1E88..$18EB
+;                   $1EFC..$1EFF  (-/-)  unmapped
+;                   $1F00..$1F09: (R/W)  imagery for sprite #0 (8*10)
+SPRITE0AX       equ $1F0A        ;(R/W)
+SPRITE0BX       equ $1F0B        ;(R/W)
+SPRITE0AY       equ $1F0C        ;(R/W)
+SPRITE0BY       equ $1F0D        ;(R/W)
+;                   $1F0E..$1F0F: (R/W)  PVI RAM
+;                   $1F10..$1F19: (R/W)  imagery for sprite #1 (8*10)
+SPRITE1AX       equ $1F1A        ;(R/W)
+SPRITE1BX       equ $1F1B        ;(R/W)
+SPRITE1AY       equ $1F1C        ;(R/W)
+SPRITE1BY       equ $1F1D        ;(R/W)
+;                   $1F1E..$1F1F: (R/W)  PVI RAM
+;                   $1F20..$1F29: (R/W)  imagery for sprite #2 (8*10)
+SPRITE2AX       equ $1F2A        ;(R/W)
+SPRITE2BX       equ $1F2B        ;(R/W)
+SPRITE2AY       equ $1F2C        ;(R/W)
+SPRITE2BY       equ $1F2D        ;(R/W)
+;                   $1F2E..$1F3F: (-/-)  unmapped
+;                   $1F40..$1F49: (R/W)  imagery for sprite #3 (8*10)
+SPRITE3AX       equ $1F4A        ;(R/W)
+SPRITE3BX       equ $1F4B        ;(R/W)
+SPRITE3AY       equ $1F4C        ;(R/W)
+SPRITE3BY       equ $1F4D        ;(R/W)
+;                   $1F4E..$1F6D: (R/W)  PVI RAM
+;                   $1F6E..$1F7F: (-/-)  unmapped
+;                   $1F80..$1FA7 ;(R/W)  vertical grid
+HORIZ1          equ $1FA8        ;(R/W)  horizontal grid #1
+HORIZ2          equ $1FA9        ;(R/W)  horizontal grid #2
+HORIZ3          equ $1FAA        ;(R/W)  horizontal grid #3
+HORIZ4          equ $1FAB        ;(R/W)  horizontal grid #4
+HORIZ5          equ $1FAC        ;(R/W)  horizontal grid #5
+;                   $1FAD:        (R/W)  PVI RAM
+;                   $1FAE..$1FBF: (-/-)  unmapped
+SIZES           equ $1FC0        ;(-/W)
+;    bits 7..6:                          sprite #3 size (%00..%11)
+;    bits 5..4:                          sprite #2 size (%00..%11)
+;    bits 3..2:                          sprite #1 size (%00..%11)
+;    bits 1..0:                          sprite #0 size (%00..%11)
+SPR01COLOURS    equ $1FC1        ;(-/W)
+;    bits 7..6:                          unused
+;    bits 5..3:                          colour of sprite #0
+;                                        (inverted RGB mask)
+;    bits 2..0:                          colour of sprite #1
+;                                        (inverted RGB mask)
+SPR23COLOURS    equ $1FC2        ;(-/W)
+;    bits 7..6:                          unused
+;    bits 5..3:                          colour of sprite #2
+;                                        (inverted RGB mask)
+;    bits 2..0:                          colour of sprite #3
+;                                        (inverted RGB mask)
+SCORECTRL       equ $1FC3        ;(-/W)
+;    bits 7..2:                          unused
+;    bit  1:                             score format
+;                                        0 = 2 groups of 2 digits
+;                                        1 = 1 group  of 4 digits
+;    bit  0:                             score position
+;                                        0 = top    of screen
+;                                        1 = bottom of screen
+;                   $1FC4..$1FC5: (-/-)  unused
+BGCOLOUR        equ $1FC6        ;(-/W)
+;    bit  7:                             unused
+;    bits 6..4:                          grid colour (normal RGB HB mask)
+;    bit  3:                             grid/background enable flag
+;                                        (0=off, 1=on)
+;    bits 2..0:                          screen colour (normal RGB HB
+;                                        mask) (black if bit 3 is clear)
+PITCH           equ $1FC7        ;(-/W)
+;    bits 7..0:                          pitch
+SCORELT         equ $1FC8        ;(-/W)  left digit pair
+;    bits 7..4:                          BCD value of 1st digit
+;    bits 3..0:                          BCD value of 2nd digit
+SCORERT         equ $1FC9        ;(-/W)  right digit pair
+;    bits 7..4:                          BCD value of 3rd digit
+;    bits 3..0:                          BCD value of 4th digit
+BGCOLLIDE       equ $1FCA        ;(R/-)  read-once!
+;    bit  7:                             sprite #0 collision with bkgrnd
+;    bit  6:                             sprite #1 collision with bkgrnd
+;    bit  5:                             sprite #2 collision with bkgrnd
+;    bit  4:                             sprite #3 collision with bkgrnd
+;    bit  3:                             sprite #0 display complete
+;    bit  2:                             sprite #1 display complete
+;    bit  1:                             sprite #2 display complete
+;    bit  0:                             sprite #3 display complete
+SPRITECOLLIDE   equ $1FCB        ;(R/-)  read-once!
+;    bit  7:                             unused
+;    bit  6:                             vertical reset flag
+;    bit  5:                             sprites #0/#1 collision
+;    bit  4:                             sprites #0/#2 collision
+;    bit  3:                             sprites #0/#3 collision
+;    bit  2:                             sprites #1/#2 collision
+;    bit  1:                             sprites #1/#3 collision
+;    bit  0:                             sprites #2/#3 collision
+P1PADDLE        equ $1FCC        ;(R/-)  cleared at VRST
+P2PADDLE        equ $1FCD        ;(R/-)  cleared at VRST
+;                   $1FCE..$1FCF ;(-/-)  unused
+;                   $1FD0..$1FDF: (*/*)  semi-mirror of $1FC0..$1FCF
+;                   $1FE0..$1FEF: (*/*)  semi-mirror of $1FC0..$1FCF
+;                   $1FF0..$1FFF: (*/*)  semi-mirror of $1FC0..$1FCF
+;                   $2000..$3FFF: (*/*)  mirror of $0000..$1FFF
+;                   $4000..$5FFF: (*/*)  mirror of $0000..$1FFF
+;                   $6000..$7FFF: (*/*)  mirror of $0000..$1FFF
+
+R/W: read/write
+R/-: read-only  (write attempts are ignored)
+-/-: unmapped
+-/W: write-only
+*/*: mirror     (or semi-mirror) (resolve address to ascertain R/W
+                 attributes)
+HB = halfbrite
+
+Also, some addresses are read-once (as noted in the text).
+
+Note that writes to $1E80..$1EFF affect the NOISE register ($1E80). Reads
+within this range are handled as shown above. (This applies to both
+Interton and Elektor.)
+  Vertical and horizontal grid registers are of course usable as ordinary
+user RAM by games which do not use the grid (such games do not set the
+"grid/background enable" flag in BGCOLOUR, or set the grid colour to be
+the same as the screen (background) colour).
+  "The object descriptor areas and background definition range can also be
+read at all times in the normal way. In the I/O and control section,
+however, reading data causes that location to be reset to $00." - 2636 PVI
+datasheet.
+  The Flag pin of the PSU (in the 2650 CPU) controls the paddle
+interpolation (ie. whether horizontal or vertical).
+
+Semi-mirroring: See the Elektor TV Games Computer Coding Guide.
+
+Interton BIN Format
+-------------------
+
+Interton-family BINs are quite straightforward; the size can be up to
+6K and these are loaded directly into the corresponding address
+($0000..$17FF). The only issue is the fact that the last 512 bytes
+($1600..$17FF) is a mirror of $1E00..$1FFF and therefore obscures access
+to that part of the ROM, limiting the usable size to 5.5K.
+
+Since games are not able to be any larger you don't need to worry about
+CPU page issues because you will only be using the first page anyway.
+
+Display Frame
+-------------
+
+X-axis ("grid" section): 16 character 'columns', each of 8 pixels
+ (each digit requires 2 columns) = 128 pixels.
+Y-axis ("grid" section): 10 character 'rows', each of 20 pixels = 200
+ pixels.
+
+Internally, the size is 227 "clocks" (X-axis pixels) by 312 rastlines
+ (Y-axis pixels).
+
+The PVI datasheet is wrong to imply that the last raster in which imagery
+is displayable is 251 (p. 6), ie. 252 visible rasters. Experimental
+results (eg. Elektor TESTER1) show that at least 268 rasters are visible
+(perhaps 272?).
+
+ 4 clock pulses (X-pixels) of the PVI correspond to 1 "fast" cycle  of the CPU.
+12 clock pulses (X-pixels) of the PVI correspond to 1 "slow" cycle  of the CPU.
+12 clock pulses (X-pixels) of the PVI correspond to 3 "fast" cycles of the CPU.
+So, for 227 X-pixels per rastline, there will be 56.75 "fast" CPU cycles
+per rastline.
+
+According to TinyVCG, CPU speed of Interton and Elektor is 295.574kHz;
+resolution is 184*268, FPS is 50. Supported machines are vc4000, tvspielc,
+tvspiel2.
+
+"The maximum clock rate of the standard 2650 is 1.25 MHz." - 2650 CPU
+manual, p. 10. (However, this might be different for 2650A?)
+
+1 "slow" cycle        =         2.4     uS.
+1 "fast" cycle        =         0.8     uS.
+So, 1,000,000 /   2.4 =   416,666.7     "slow" cycles per second.
+So, 1,000,000 /   0.8 = 1,500,000       "fast" cycles per second.
+So, for PAL:
+    1,500,000 /  50   =    30,000       "fast" cycles per frame.
+So, for 312 rastlines:
+       30,000 / 312   =        96.15385 "fast" cycles per rastline.
+       30,000 / 272   =       110.2941  "fast" cycles per rastline.
+
+"Direct instructions require either 2, 3 or 4 ["slow"] processor cycles
+for execution and therefore vary from 4.8 to 9.6 uS in duration." - 2650
+CPU manual, p. 10.
+
+   43 pixels of     hblank require 12.12335 usec,
++ 184 pixels of non-hblank require 51.87665 usec,
+= 227 pixels               require 64       usec.
+64 usec per line * 312 lines = 19.968 ms per frame.
+ 4 x-pixels per cycle.
+12 clock pulses (ie. x-pixels) = 1 slow cpu cycles.
+12 clock pulses (ie. x-pixels) = 3 fast cpu cycles.
+
+2621 USG horizontal timings are:
+ There are 227 horizontal pixels, numbered 0..226.
+ Horizontal blank is pixels 6..48 (43 pixels), non-blank 49..226 and 0..5 (184 pixels).
+  Front porch           is pixels  6.. 10  (  5 pixels) (beam blanked, moving slowly  right).
+  Horizontal sync pulse is pixels 11.. 27  ( 17 pixels) (beam blanked, moving quickly left).
+  Back porch            is pixels 28.. 48  ( 21 pixels) (beam blanked, moving slowly  right), as follows:
+   Front of back porch  is pixels 28.. 30  (  3 pixels).
+   Colour burst         is pixels 31.. 39  (  9 pixels).
+   Back of back porch   is pixels 40.. 48  (  9 pixels).
+  Normal scan           is pixels 49..  5  (184 pixels) (beam unblanked, moving slowly right), as follows:
+                           pixels 49..226  (178 pixels).
+                         + pixels  0..  5  (  6 pixels).
+ It takes a duration of 210 "X-pixels" (columns) to do all our right movement per line (slowly).
+ It takes a duration of  17 "X-pixels" (columns) to do all our left  movement per line (quickly).
+
+2621 USG vertical timings are:
+ There are 312 vertical pixels, numbered 1..312.
+ Vertical blank is from pixel 6 (ie. start of hblank) on raster 312 (aka raster 0)
+  to pixel 5 (ie. start of hblank) on raster 43, inclusive.
+  There are 268 non-vblank rows, and 44 vblank rows.
+ It takes a duration of 268 "Y-pixels" to do all our down movement per frame (slowly).
+ It takes a duration of 579 "X-pixels" to do all our up   movement per frame (quickly).
+ The USG generates a single sync pulse (lasting for 114+227+227+11=579
+  X-pixels), known as block sync (rather than a train of long and short
+  pulses, known as commercial sync, which is typically used for TV
+  broadcasts).
+
+2621 USG signals are as follows:
+ HRST  (Horizontal ReSeT):          high from X-pixel  6..48 (ie. during horizontal blank).
+ HS    (Horizontal Sync):           high from X-pixel 11..27 (ie. during horizontal retrace).
+ PCK   (horizontal Position ClocK): high during the left half of each pixel, low during the right half.
+ CBF   (Colour Burst Flag):         high from X-pixel 31..39 (ie. during colour burst).
+ OE    (Odd/Even line):             toggles at X-pixel 19 of each line (ie. midway through horizontal retrace).
+ VRST  (Vertical Reset):            high from X,Y-pixel 6,1..5.43 (ie. during vertical blank).
+ VS    (Vertical Sync):             high from X,Y-pixel 113,12..10,15 (ie. during vertical retrace).
+ CBLNK (Composite Blanking):        high whenever HRST or VRST (or both) is high
+ CSYNC (Composite Sync):            high whenever VS equals HS (ie. whenever both are low, or both are high)
+
+Grid
+----
+
+Table of bits controlling which segments are lit (addresses are in hexadecimal):
+
+1F80:7 1F80:6 1F80:5 1F80:4 1F80:3 1F80:2 1F80:1 1F80:0 1F81:7 1F81:6 1F81:5 1F81:4 1F81:3 1F81:2 1F81:1 1F81:0    row   0 set  1 (raster 20)
+1F80:7 1F80:6 1F80:5 1F80:4 1F80:3 1F80:2 1F80:1 1F80:0 1F81:7 1F81:6 1F81:5 1F81:4 1F81:3 1F81:2 1F81:1 1F81:0    row   1 set  1
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   2 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   3 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   4 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   5 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   6 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   7 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   8 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row   9 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  10 set  2a
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  11 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  12 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  13 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  14 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  15 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  16 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  17 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  18 set  2b
+1F82:7 1F82:6 1F82:5 1F82:4 1F82:3 1F82:2 1F82:1 1F82:0 1F83:7 1F83:6 1F83:5 1F83:4 1F83:3 1F83:2 1F83:1 1F83:0    row  19 set  2b
+ : : :
+1FA4:7 1FA4:6 1FA4:5 1FA4:4 1FA4:3 1FA4:2 1FA4:1 1FA4:0 1FA5:7 1FA5:6 1FA5:5 1FA5:4 1FA5:3 1FA5:2 1FA5:1 1FA5:0    row 180 set 19
+1FA4:7 1FA4:6 1FA4:5 1FA4:4 1FA4:3 1FA4:2 1FA4:1 1FA4:0 1FA5:7 1FA5:6 1FA5:5 1FA5:4 1FA5:3 1FA5:2 1FA5:1 1FA5:0    row 181 set 19
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 182 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 183 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 184 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 185 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 186 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 187 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 188 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 189 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 190 set 20a
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 191 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 192 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 193 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 194 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 195 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 196 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 197 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 198 set 20b
+1FA6:7 1FA6:6 1FA6:5 1FA6:4 1FA6:3 1FA6:2 1FA6:1 1FA6:0 1FA7:7 1FA7:6 1FA7:5 1FA7:4 1FA7:3 1FA7:2 1FA7:1 1FA7:0    row 199 set 20b (raster 219)
+
+Table of bits controlling segment widths:
+
+$1FA8:7..6: %00 or %10 = 1x       width for sets  1.. 4 (except where overridden by $1FA8:5..0)
+            %01        = 2x       width for sets  1.. 4 (except where overridden by $1FA8:5..0)
+            %11        = 4x       width for sets  1.. 4 (except where overridden by $1FA8:5..0)
+$1FA8:5:    %0         = 1x/2x/4x width for set   4b    (depending on $1FA8:7..6)
+            %1         = 8x       width for set   4b
+$1FA8:4:    %0         = 1x/2x/4x width for set   4a    (depending on $1FA8:7..6)
+            %1         = 8x       width for set   4a
+$1FA8:3:    %0         = 1x/2x/4x width for set   3     (depending on $1FA8:7..6)
+            %1         = 8x       width for set   3
+$1FA8:2:    %0         = 1x/2x/4x width for set   2b    (depending on $1FA8:7..6)
+            %1         = 8x       width for set   2b
+$1FA8:1:    %0         = 1x/2x/4x width for set   2a    (depending on $1FA8:7..6)
+            %1         = 8x       width for set   2a
+$1FA8:0:    %0         = 1x/2x/4x width for set   1     (depending on $1FA8:7..6)
+            %1         = 8x       width for set   1
+ : : :
+$1FAC:7..6: %00 or %10 = 1x       width for sets 17..20 (except where overridden by $1FAC:5..0)
+            %01        = 2x       width for sets 17..20 (except where overridden by $1FAC:5..0)
+            %11        = 4x       width for sets 17..20 (except where overridden by $1FAC:5..0)
+$1FAC:5:    %0         = 1x/2x/4x width for set  20b    (depending on $1FAC:7..6)
+            %1         = 8x       width for set  20b
+$1FAC:4:    %0         = 1x/2x/4x width for set  20a    (depending on $1FAC:7..6)
+            %1         = 8x       width for set  20a
+$1FAC:3:    %0         = 1x/2x/4x width for set  19     (depending on $1FAC:7..6)
+            %1         = 8x       width for set  19
+$1FAC:2:    %0         = 1x/2x/4x width for set  18b    (depending on $1FAC:7..6)
+            %1         = 8x       width for set  18b
+$1FAC:1:    %0         = 1x/2x/4x width for set  18a    (depending on $1FAC:7..6)
+            %1         = 8x       width for set  18a
+$1FAC:0:    %0         = 1x/2x/4x width for set  17     (depending on $1FAC:7..6)
+            %1         = 8x       width for set  17
+
+Tones
+-----
+
+Here are the optimal PITCH register values for harmonic melodies, in
+hexadecimal and decimal notations:
+
+    Note          PITCH reg      Actual Freq    Ideal Freq
+
+    ----------    $FF (255)      30.75781 Hz    -----------
+     xxlow B :    $FE (254)      30.87843 Hz      30.868 Hz
+    ----------    $FD (253)      31.00000 Hz    -----------
+    ----------    $FC (252)      31.12253 Hz    ----------- 
+    ----------    $FB (251)      31.24603 Hz    -----------
+    ----------    $FA (250)      31.37052 Hz    -----------
+    ----------    $F9 (249)      31.49600 Hz    -----------
+    ----------    $F8 (248)      31.62249 Hz    -----------
+    ----------    $F7 (247)      31.75000 Hz    -----------
+    ----------    $F6 (246)      31.87854 Hz    -----------
+    ----------    $F5 (245)      32.00813 Hz    -----------
+    ----------    $F4 (244)      32.13877 Hz    -----------
+    ----------    $F3 (243)      32.27049 Hz    -----------
+    ----------    $F2 (242)      32.40329 Hz    -----------
+    ----------    $F1 (241)      32.53719 Hz    -----------
+      xlow C :    $F0 (240)      32.67220 Hz      32.703 Hz
+    ----------    $EF (239)      32.80833 Hz    -----------
+    ----------    $EE (238)      32.94561 Hz    -----------
+    ----------    $ED (237)      33.08403 Hz    -----------
+    ----------    $EC (236)      33.22363 Hz    -----------
+    ----------    $EB (235)      33.36441 Hz    -----------
+    ----------    $EA (234)      33.50638 Hz    -----------
+    ----------    $E9 (233)      33.64957 Hz    -----------
+    ----------    $E8 (232)      33.79399 Hz    -----------
+    ----------    $E7 (231)      33.93966 Hz    -----------
+    ----------    $E6 (230)      34.08658 Hz    -----------
+    ----------    $E5 (229)      34.23478 Hz    -----------
+    ----------    $E4 (228)      34.38428 Hz    -----------
+    ----------    $E3 (227)      34.53509 Hz    -----------
+      xlow C#:    $E2 (226)      34.68723 Hz      34.648 Hz
+    ----------    $E1 (225)      34.84071 Hz    -----------
+    ----------    $E0 (224)      34.99556 Hz    -----------
+    ----------    $DF (223)      35.15179 Hz    -----------
+    ----------    $DE (222)      35.30942 Hz    -----------
+    ----------    $DD (221)      35.46847 Hz    -----------
+    ----------    $DC (220)      35.62896 Hz    -----------
+    ----------    $DB (219)      35.79091 Hz    -----------
+    ----------    $DA (218)      35.95434 Hz    -----------
+    ----------    $D9 (217)      36.11927 Hz    -----------
+    ----------    $D8 (216)      36.28571 Hz    -----------
+    ----------    $D7 (215)      36.45370 Hz    -----------
+      xlow D :    $D6 (214)      36.62326 Hz      36.708 Hz
+    ----------    $D5 (213)      36.79439 Hz    -----------
+    ----------    $D4 (212)      36.96714 Hz    -----------
+    ----------    $D3 (211)      37.14151 Hz    -----------
+    ----------    $D2 (210)      37.31754 Hz    -----------
+    ----------    $D1 (209)      37.49524 Hz    -----------
+    ----------    $D0 (208)      37.67464 Hz    -----------
+    ----------    $CF (207)      37.85577 Hz    -----------
+    ----------    $CE (206)      38.03865 Hz    -----------
+    ----------    $CD (205)      38.22330 Hz    -----------
+    ----------    $CC (204)      38.40976 Hz    -----------
+    ----------    $CB (203)      38.59804 Hz    -----------
+    ----------    $CA (202)      38.78818 Hz    -----------
+      xlow D#:    $C9 (201)      38.98020 Hz      38.891 Hz
+    ----------    $C8 (200)      39.17413 Hz    -----------
+    ----------    $C7 (199)      39.37000 Hz    -----------
+    ----------    $C6 (198)      39.56784 Hz    -----------
+    ----------    $C5 (197)      39.76768 Hz    -----------
+    ----------    $C4 (196)      39.96954 Hz    -----------
+    ----------    $C3 (195)      40.17347 Hz    -----------
+    ----------    $C2 (194)      40.37949 Hz    -----------
+    ----------    $C1 (193)      40.58763 Hz    -----------
+    ----------    $C0 (192)      40.79793 Hz    -----------
+    ----------    $BF (191)      41.01042 Hz    -----------
+      xlow E :    $BE (190)      41.22513 Hz      41.203 Hz
+    ----------    $BD (189)      41.44210 Hz    -----------
+    ----------    $BC (188)      41.66138 Hz    -----------
+    ----------    $BB (187)      41.88298 Hz    -----------
+    ----------    $BA (186)      42.10695 Hz    -----------
+    ----------    $B9 (185)      42.33333 Hz    -----------
+    ----------    $B8 (184)      42.56216 Hz    -----------
+    ----------    $B7 (183)      42.79348 Hz    -----------
+    ----------    $B6 (182)      43.02732 Hz    -----------
+    ----------    $B5 (181)      43.26374 Hz    -----------
+    ----------    $B4 (180)      43.50276 Hz    -----------
+      xlow F :    $B3 (179)      43.74445 Hz      43.654 Hz
+    ----------    $B2 (178)      43.98883 Hz    -----------
+    ----------    $B1 (177)      44.23595 Hz    -----------
+    ----------    $B0 (176)      44.48587 Hz    -----------
+    ----------    $AF (175)      44.73864 Hz    -----------
+    ----------    $AE (174)      44.99429 Hz    -----------
+    ----------    $AD (173)      45.25287 Hz    -----------
+    ----------    $AC (172)      45.51445 Hz    -----------
+    ----------    $AB (171)      45.77907 Hz    -----------
+    ----------    $AA (170)      46.04678 Hz    -----------
+      xlow F#:    $A9 (169)      46.31765 Hz      46.249 Hz
+    ----------    $A8 (168)      46.59172 Hz    -----------
+    ----------    $A7 (167)      46.86905 Hz    -----------
+    ----------    $A6 (166)      47.14970 Hz    -----------
+    ----------    $A5 (165)      47.43373 Hz    -----------
+    ----------    $A4 (164)      47.72121 Hz    -----------
+    ----------    $A3 (163)      48.01220 Hz    -----------
+    ----------    $A2 (162)      48.30675 Hz    -----------
+    ----------    $A1 (161)      48.60494 Hz    -----------
+      xlow G :    $A0 (160)      48.90683 Hz      48.999 Hz
+    ----------    $9F (159)      49.21250 Hz    -----------
+    ----------    $9E (158)      49.52201 Hz    -----------
+    ----------    $9D (157)      49.83544 Hz    -----------
+    ----------    $9C (156)      50.15287 Hz    -----------
+    ----------    $9B (155)      50.47436 Hz    -----------
+    ----------    $9A (154)      50.80000 Hz    -----------
+    ----------    $99 (153)      51.12987 Hz    -----------
+    ----------    $98 (152)      51.46405 Hz    -----------
+      xlow G#:    $97 (151)      51.80263 Hz      51.913 Hz
+    ---------:    $96 (150)      52.14569 Hz    -----------
+    ---------:    $95 (149)      52.49333 Hz    -----------
+    ---------:    $94 (148)      52.84564 Hz    -----------
+    ---------:    $93 (147)      53.20270 Hz    -----------
+    ---------:    $92 (146)      53.56462 Hz    -----------
+    ---------:    $91 (145)      53.93151 Hz    -----------
+    ---------:    $90 (144)      54.30345 Hz    -----------
+    ---------:    $8F (143)      54.68056 Hz    -----------
+      xlow A :    $8E (142)      55.06294 Hz      55.000 Hz
+    ---------:    $8D (141)      55.45070 Hz    -----------
+    ---------:    $8C (140)      55.84397 Hz    -----------
+    ---------:    $8B (139)      56.24286 Hz    -----------
+    ---------:    $8A (138)      56.64748 Hz    -----------
+    ---------:    $89 (137)      57.05797 Hz    -----------
+    ---------:    $88 (136)      57.47445 Hz    -----------
+    ---------:    $87 (135)      57.89706 Hz    -----------
+      xlow A#:    $86 (134)      58.32593 Hz      58.270 Hz
+    ---------:    $85 (133)      58.76119 Hz    -----------
+    ---------:    $84 (132)      59.20301 Hz    -----------
+    ---------:    $83 (131)      59.65152 Hz    -----------
+    ---------:    $82 (130)      60.10687 Hz    -----------
+    ---------:    $81 (129)      60.56923 Hz    -----------
+    ---------:    $80 (128)      61.03876 Hz    -----------
+    ----------    $7F (127)      61.52    Hz    -----------
+    ----------    $7E (126)      62.00    Hz    -----------
+    ----------    $7D (125)      62.49    Hz    -----------
+      xlow B :    $7C (124)      62.99    Hz      61.735 Hz
+    ----------    $7B (123)      63.50    Hz    -----------
+    ----------    $7A (122)      64.02    Hz    -----------
+    ----------    $79 (121)      64.54    Hz    -----------
+    ----------    $78 (120)      65.07    Hz    -----------
+      vlow C :    $77 (119)      65.62    Hz      65.406 Hz
+    ----------    $76 (118)      66.17    Hz    -----------
+    ----------    $75 (117)      66.73    Hz    -----------
+    ----------    $74 (116)      67.30    Hz    -----------
+    ----------    $73 (115)      67.88    Hz    -----------
+    ----------    $72 (114)      68.47    Hz    -----------
+    ----------    $71 (113)      69.07    Hz    -----------
+      vlow C#:    $70 (112)      69.68    Hz      69.296 Hz
+    ----------    $6F (111)      70.30    Hz    -----------
+    ----------    $6E (110)      70.94    Hz    -----------
+    ----------    $6D (109)      71.58    Hz    -----------
+    ----------    $6C (108)      72.24    Hz    -----------
+      vlow D :    $6B (107)      72.91    Hz      73.416 Hz
+    ----------    $6A (106)      73.59    Hz    -----------
+    ----------    $69 (105)      74.28    Hz    -----------
+    ----------    $68 (104)      74.99    Hz    -----------
+    ----------    $67 (103)      75.71    Hz    -----------
+    ----------    $66 (102)      76.45    Hz    -----------
+    ----------    $65 (101)      77.20    Hz    -----------
+      vlow D#:    $64 (100)      77.96    Hz      77.782 Hz
+    ----------    $63 ( 99)      78.74    Hz    -----------
+    ----------    $62 ( 98)      79.54    Hz    -----------
+    ----------    $61 ( 97)      80.35    Hz    -----------
+    ----------    $60 ( 96)      81.18    Hz    -----------
+      vlow E :    $5F ( 95)      82.02    Hz      82.407 Hz
+    ----------    $5E ( 94)      82.88    Hz    -----------
+    ----------    $5D ( 93)      83.77    Hz    -----------
+    ----------    $5C ( 92)      84.67    Hz    -----------
+    ----------    $5B ( 91)      85.59    Hz    -----------
+    ----------    $5A ( 90)      86.53    Hz    -----------
+      vlow F :    $59 ( 89)      87.49    Hz      87.307 Hz
+    ----------    $58 ( 88)      88.47    Hz    -----------
+    ----------    $57 ( 87)      89.48    Hz    -----------
+    ----------    $56 ( 86)      90.51    Hz    -----------
+    ----------    $55 ( 85)      91.56    Hz    -----------
+      vlow F#:    $54 ( 84)      92.64    Hz      92.499 Hz
+    ----------    $53 ( 83)      93.74    Hz    -----------
+    ----------    $52 ( 82)      94.87    Hz    -----------
+    ----------    $51 ( 81)      96.02    Hz    -----------
+    ----------    $50 ( 80)      97.21    Hz    -----------
+      vlow G :    $4F ( 79)      98.42    Hz      97.999 Hz
+    ----------    $4E ( 78)      99.67    Hz    -----------
+    ----------    $4D ( 77)     100.95    Hz    -----------
+    ----------    $4C ( 76)     102.26    Hz    -----------
+      vlow G#:    $4B ( 75)     103.61    Hz     103.826 Hz
+    ----------    $4A ( 74)     104.99    Hz    -----------
+    ----------    $49 ( 73)     106.41    Hz    -----------
+    ----------    $48 ( 72)     107.86    Hz    -----------
+    ----------    $47 ( 71)     109.36    Hz    -----------
+      vlow A :    $46 ( 70)     110.90    Hz     110.000 Hz
+    ----------    $45 ( 69)     112.49    Hz    -----------
+    ----------    $44 ( 68)     114.12    Hz    -----------
+    ----------    $43 ( 67)     115.79    Hz    -----------
+      vlow A#:    $42 ( 66)     117.52    Hz     116.541 Hz
+    ----------    $41 ( 65)     119.30    Hz    -----------
+    ----------    $40 ( 64)     121.14    Hz    -----------
+      vlow B :    $3F ( 63)     123.03    Hz     123.471 Hz
+    ----------    $3E ( 62)     124.98    Hz    -----------
+    ----------    $3D ( 61)     127.00    Hz    -----------
+    ----------    $3C ( 60)     129.08    Hz    -----------
+       low C :    $3B ( 59)     131.23    Hz     130.813 Hz
+    ----------    $3A ( 58)     133.46    Hz    -----------
+    ----------    $39 ( 57)     135.76    Hz    -----------
+       low C#:    $38 ( 56)     138.14    Hz     138.591 Hz
+    ----------    $37 ( 55)     140.61    Hz    -----------
+    ----------    $36 ( 54)     143.16    Hz    -----------
+       low D :    $35 ( 53)     145.81    Hz     146.832 Hz
+    ----------    $34 ( 52)     148.57    Hz    -----------
+    ----------    $33 ( 51)     151.42    Hz    -----------
+    ----------    $32 ( 50)     154.39    Hz    -----------
+       low D#:    $31 ( 49)     157.48    Hz     155.563 Hz
+    ----------    $30 ( 48)     160.69    Hz    -----------
+       low E :    $2F ( 47)     164.04    Hz     164.814 Hz
+    ----------    $2E ( 46)     167.53    Hz    -----------
+    ----------    $2D ( 45)     171.17    Hz    -----------
+       low F :    $2C ( 44)     174.98    Hz     174.614 Hz
+    ----------    $2B ( 43)     178.95    Hz    -----------
+       low F#:    $2A ( 42)     183.12    Hz     184.997 Hz
+    ----------    $29 ( 41)     187.48    Hz    -----------
+    ----------    $28 ( 40)     192.05    Hz    -----------
+       low G :    $27 ( 39)     196.85    Hz     195.998 Hz
+    ----------    $26 ( 38)     201.90    Hz    -----------
+       low G#:    $25 ( 37)     207.21    Hz     207.652 Hz
+    ----------    $24 ( 36)     212.81    Hz    -----------
+       low A :    $23 ( 35)     218.72    Hz     220.000 Hz
+    ----------    $22 ( 34)     224.97    Hz    -----------
+       low A#:    $21 ( 33)     231.59    Hz     233.082 Hz
+    ----------    $20 ( 32)     238.61    Hz    -----------
+       low B :    $1F ( 31)     246.06    Hz     246.942 Hz
+    ----------    $1E ( 30)     254.00    Hz    -----------
+    middle C :    $1D ( 29)     262.47    Hz     261.626 Hz
+    ----------    $1C ( 28)     271.52    Hz    -----------
+    middle C#:    $1B ( 27)     281.21    Hz     277.183 Hz
+    middle D :    $1A ( 26)     291.63    Hz     293.665 Hz
+    ----------    $19 ( 25)     302.84    Hz    -----------
+    middle D#:    $18 ( 24)     314.96    Hz     311.127 Hz
+    middle E :    $17 ( 23)     328.08    Hz     329.628 Hz
+    ----------    $16 ( 22)     342.35    Hz    -----------
+    middle F :    $15 ( 21)     357.91    Hz     349.228 Hz
+    middle F#:    $14 ( 20)     374.95    Hz     369.994 Hz
+    middle G :    $13 ( 19)     393.70    Hz     391.995 Hz
+    middle G#:    $12 ( 18)     414.42    Hz     415.305 Hz
+    middle A :    $11 ( 17)     437.44    Hz     440.000 Hz
+    middle A#:    $10 ( 16)     463.18    Hz     466.164 Hz
+    middle B :    $0F ( 15)     492.12    Hz     493.883 Hz
+      high C :    $0E ( 14)     524.93    Hz     523.251 Hz
+      high C#:    $0D ( 13)     562.43    Hz     554.365 Hz
+      high D :    --------------------------     587.330 Hz
+      high D#:    $0C ( 12)     605.69    Hz     622.254 Hz
+      high E :    $0B ( 11)     656.17    Hz     659.255 Hz
+      high F :    $0A ( 10)     715.82    Hz     698.456 Hz
+      high F#:    --------------------------     739.989 Hz
+      high G :    $09 (  9)     787.40    Hz     783.991 Hz
+      high G#:    --------------------------     830.609 Hz
+      high A :    $08 (  8)     874.89    Hz     880.000 Hz
+      high A#:    --------------------------     932.328 Hz
+      high B :    $07 (  7)     984.25    Hz     987.767 Hz
+     vhigh C :    --------------------------    1046.502 Hz
+     vhigh C#:    $06 (  6)    1124.86    Hz    1108.731 Hz
+     vhigh D :    --------------------------    1174.659 Hz
+     vhigh D#:    --------------------------    1244.508 Hz
+     vhigh E :    $05 (  5)    1312.33    Hz    1318.510 Hz
+     vhigh F :    --------------------------    1396.913 Hz
+     vhigh F#:    --------------------------    1479.978 Hz
+     vhigh G :    $04 (  4)    1574.80    Hz    1567.982 Hz
+     vhigh G#:    --------------------------    1661.219 Hz
+    middle G :    $03 (  3)    1968.50    Hz    -----------
+      high C :    $02 (  2)    2624.67    Hz    -----------
+      high G :    $01 (  1)    3937.00    Hz    -----------
+      silence:    $00 (  0)    -------------    -----------
+
+This should assist in illustrating why tones are off-key.
+
+Strange results for the higher-pitched notes (3..1) are due to aliasing
+effects, which might be absent on the genuine console. The algorithm for
+tone generation is:
+
+    frequency = 7874 ï¿½ (PITCH + 1);
+
+Noise
+-----
+
+The following code fragments are given in the "TV Games Computer" book, p.
+187:
+
+;"sound off"
+;NOISE = 0;
+eorz    r0
+stra,r0 NOISE
+
+;"sound off"
+;NOISE = 0;
+lodi,r0 0
+stra,r0 NOISE
+
+;"PVI sound on"
+;NOISE = 4;
+lodi,r0 4
+stra,r0 NOISE
+
+;"noise (ie. explosion) on"
+;NOISE = $10;
+lodi,r0 $10
+stra,r0 NOISE
+
+"Noise", in the discussion in that chapter, refers to the explosion
+generator ("bang" sound), not the white-noise generator.
+
+Colours
+-------
+
+                              R,G,B
+                              -----
+     0:       black           0,0,0    Colours 0..7 are fullbrite (FB).
+     1:       blue            0,0,2
+     2:       green           0,2,0
+     3:       cyan            0,2,2
+     4:       red             2,0,0
+     5:       purple          2,0,2
+     6:       yellow          2,2,0
+     7:       white           2,2,2
+     8: "dark black"  (black) 0,0,0    Colours 8..15 are halfbrite (HB);
+     9:  dark blue            0,0,1    they are approximately half as
+    10:  dark green           0,1,0    bright as the corresponding
+    11:  dark cyan            0,1,1    fullbrite colours (0..7).
+    12:  dark red             1,0,0
+    13:  dark purple          1,0,1
+    14: "dark yellow" (brown) 1,1,0
+    15: "dark white"  (grey ) 1,1,1
+
+RGB values of 0: zero intensity
+              1: half intensity (approx?)
+              2: full intensity
+
+Background colour is:  8 +  (bits 2..0 of BGCOLOUR    )       (ie. 8..15)
+Grid colour is:        8 + ((bits 6..4 of BGCOLOUR    ) >> 4) (ie. 8..15)
+Digit colours are:     7 - ((bits 6..4 of BGCOLOUR    ) >> 4) (ie. 0.. 7)
+Sprite #0 colours are: 7 - ((bits 5..3 of SPR01COLOURS) >> 3) (ie. 0.. 7)
+Sprite #1 colours are: 7 -  (bits 2..0 of SPR01COLOURS)       (ie. 0.. 7)
+Sprite #2 colours are: 7 - ((bits 5..3 of SPR23COLOURS) >> 3) (ie. 0.. 7)
+Sprite #3 colours are: 7 -  (bits 2..0 of SPR23COLOURS)       (ie. 0.. 7)
+
+The digit colour is always dependent on the grid colour, and vice versa,
+as shown:
+
+    BGCOLOUR     Grid           Digits
+    %x000xxxx    black          white
+    %x001xxxx    dark blue      yellow
+    %x010xxxx    dark green     purple
+    %x011xxxx    dark cyan      red
+    %x100xxxx    dark red       cyan
+    %x101xxxx    dark purple    green
+    %x110xxxx    brown          blue
+    %x111xxxx    grey           black
+
+Note that some Interton VC 4000 family members, such as the Fountain,
+apparently use fullbrite mode rather than halfbrite mode. See the Elektor
+TV Games Computer Coding Guide for information about fullbrite mode.
+
+Digits
+------
+
+Each digit is 12*20 pixels.
+Digit Y-area is 20..39 and/or 200..219, depending on SCORECTRL.
+1st digit X-area is  60.. 71.
+2nd digit X-area is  76.. 87.
+3rd digit X-area is  92..103 or 108..119, depending on SCORECTRL.
+4th digit X-area is 108..119 or 124..135, depending on SCORECTRL.
+
+Sprites
+-------
+
+SPRITEnAX: "If SPRITEnAX is changed during the time that the corresponding
+object video is being displayed, the portion of the object not yet
+displayed will be displaced to the new horizontal position." Ie. it is
+resampled every pixel (at least whilst the sprite is being displayed).
+
+SPRITEnAY: "The value of SPRITEnAY is 'remembered' at the trailing edge of
+VRST. Thus, if SPRITEnAY is changed during the active scan, the vertical
+object position change will not be effective until the next active scan."
+Ie. it is sampled once per frame (at the end of vertical blank).
+
+SPRITEnBY is when to redraw (reuse) the sprite:
+
+    $FF means   0 rastlines gap
+    $00 means   1 rastline  gap
+    $01 means   2 rastlines gap
+    $02 means   3 rastlines gap
+    $FC means 253 rastlines gap
+    $FD means "never" (but this register will still be reexamined each
+                      rastline?)
+    $FE means "never" (but this register will still be reexamined each
+                      rastline?)
+
+According to the 2636 PVI datasheet:
+
+Sprite X = SPRITEAXn + 1 (assuming leftmost clock  is 0)
+Sprite Y = SPRITEAYn + 1 (assuming topmost  raster is 0)
+
+SPRITEAXn of >= 228 is not displayed.
+SPRITEAYn of >= 253 is not displayed.
+
+SPRITEAXn is not cached (or is cached during HRST).
+SPRITEAYn must be changed by (ie. it is cached at) the end of VRST.
+SPRITEBXn is cached during HRST.
+SPRITEBY is sampled just prior to displaying the last line of the
+ (original or duplicate) object. That sampling presumably wouldn't affect
+ the last line itself.
+
+"The interrupt generation occurs during the horizontal sync at the end of
+the last line of the sprite display." - Manfred Schneider.
+
+SIZES is as follows:
+    two bits per sprite (#3,#2,#1,#0):
+        bits 7..6: sprite #3 size
+        bits 5..4: sprite #2 size
+        bits 3..2: sprite #1 size
+        bits 1..0: sprite #0 size
+    %00 = 1x size ( 8*10 pixels)
+    %01 = 2x size (16*20 pixels)
+    %10 = 4x size (32*40 pixels)
+    %11 = 8x size (64*80 pixels)
+
+Timing
+------
+
+1 "long" cycle (3 "short" cycles) requires 3.38uS (microseconds).
+So, in 1 second, approx. 295,856.9781484442 (1,000,000/3.38) "long"
+ cycles can be executed.
+So, in 1 frame (1/50 of a second), approx. 5,917.16 "long" cycles can be
+ executed.
+So, in 1 raster (1/312 of a frame), approx. 18.96526 "long" cycles
+ (approx. 56.89576502854696 "short" cycles) can be executed.
+
+"There are a total of 262 scan lines: 192 in the active display, 38 before
+and 32 after. The PVI uses a 3.579545 MHz crystal. This frequency, divided
+by 4, is used to clock the CPU. Thus, during a screen scan line 56.75 CPU
+cycles occur. Rounding this value to 57, some games cease to work." -
+Lance Squire.
+
+Common Misconceptions
+---------------------
+
+There are many inaccuracies which have become widely believed. These will
+now be corrected:
+
+    * The Interton VC 4000 was supposedly made from 1974 but not sold
+      until 1978. However, the Signetics 2650 CPU was only made from 1975;
+      therefore, the Interton VC 4000 could not have been made from 1974.
+
+    * There are 16 colours, not 9.
+
+    * There are no multicoloured sprites. All sprites are single-colour
+      (although the same effect can of course be achieved by superimposing
+      multiple sprites on the screen).
+
+2636 PVI Datasheet Example
+--------------------------
+
+SPRITE1AX = 42
+SPRITE1AY = 36
+SPRITE1BX = 30
+SPRITE1BY =  9 (10 line gap)
+
+Sprite #1 ( original) is shown at 42..49, 36.. 45.
+Sprite #1 ( 1st dup.) is shown at 30..37, 56.. 65.
+Sprite #1 ( 2nd dup.) is shown at 30..37, 76.. 85.
+Sprite #1 ( 3rd dup.) is shown at 30..37, 96..105.
+Sprite #1 ( 4th dup.) is shown at 30..37,116..125.
+Sprite #1 ( 5th dup.) is shown at 30..37,136..145.
+Sprite #1 ( 6th dup.) is shown at 30..37,156..165.
+Sprite #1 ( 7th dup.) is shown at 30..37,176..185.
+Sprite #1 ( 8th dup.) is shown at 30..37,196..205.
+Sprite #1 ( 9th dup.) is shown at 30..37,216..225.
+Sprite #1 (10th dup.) is shown at 30..37,236..245.
+
+Either 250 or 251 is the last displayable rastline.
+
+SPRITE2AX = 62
+SPRITE2AY = 20
+SPRITE2BX = 88
+SPRITE2BY = 27 (28 line gap)
+
+Sprite #2 ( original) is shown at 62..69, 20.. 29.
+Sprite #2 ( 1st dup.) is shown at 88..95, 58.. 67.
+Sprite #2 ( 2nd dup.) is shown at 88..95, 96..105.
+Sprite #2 ( 3rd dup.) is shown at 88..95,134..143.
+Sprite #2 ( 4th dup.) is shown at 88..95,172..181.
+Sprite #2 ( 5th dup.) is shown at 88..95,210..219.
+Sprite #2 ( 6th dup.) is shown at 88..95,248..250/251?
+
+Unresolved PVI Questions
+------------------------
+
+The primary remaining obstacles to good Interton/Elektor emulation seem
+to be sprite subsystem (especially duplicate sprite handling), and/or
+display frame/timing issues. The documentation contains ambiguous and
+seemingly contradictory statements.
+
+Terminological note: a new "sprite line" occurs whenever a new row of
+sprite imagery is fetched, and thus occurs every rastline when the sprite
+is drawn at 1x size, every second rastline when drawn at 2x size, etc.
+
+When is SIZES ($1FC0) read by the PVI?
+ eg. start of sprite, or each rastline, or each sprite line. Definitely
+  not start of frame.
+ Start of sprite helps HUNTING/SHOOTGAL.
+ Each rastline helps INVADERA/INVADERB?
+
+What is the last X-position at which a sprite can be positioned (ie.
+started, ie. 1st clock drawn)?
+
+What is the last Y-position at which a sprite can be positioned (ie.
+started, ie. 1st raster drawn)?
+
+What is the last X-position at which a sprite column can be drawn?
+
+What is the last Y-position at which a sprite row can be drawn?
+
+"A 'primary' sprite can start at any line up to 255 (maximum value in
+SPRITEAYn), a duplicate sprite also beyond that line and until VRST goes
+active." - Manfred Schneider. Improves GRNDPRIX/CARRACES.
+
+"If SPRITEAYn is set to >252, the object is effectively removed from the
+video field." - 2636 PVI datasheet, p. 5. But that seems to be wrong?
+
+Resolved PVI Questions
+----------------------
+
+1. Are mid-sprite changes to SPRITEnAX effective? (TESTER2.PGM confirms
+that they are.)
+
+"If SPRITEnAX is changed during the time that the corresponding object
+video is being displayed, the portion of the object not yet displayed will
+be displaced to the new horizontal position." - PVI manual, p. 5.
+
+"Unlike SPRITEnAX and SPRITEnAY, SPRITEnBX and SPRITEnBY may be changed
+during the scan and such changes will be effected on the current scan." -
+PVI manual, p. 5.
+
+The first statement is correct. The second statement should be amended to
+"Unlike SPRITEnAY, SPRITEnBX and SPRITEnBY may be changed during the scan
+and such changes will be effected on the current scan."
+
+2. How do sprite coordinates relate to eg. grid coordinates?
+ eg. SPRITEnAX=31,SPRITEnAY=19 is top left of grid (according to 2636 PVI
+  datasheet, p. 5)
+ or is above and to the left of the top left grid (according to 2636 PVI
+  datasheet, p. 6)
+
+SPRITEnAY = $FF aligns the sprite to raster 0
+SPRITEnAY = $00 aligns the sprite to raster 1
+SPRITEnAY = $01 aligns the sprite to raster 2
+etc. This is demonstrated by eg. Interton BLACKJAC.
+
+Chips
+-----
+
+The Come-Frutas game uses these chips:
+
+Texas Instrument TMS2114L-45NL BP8109 (x2)
+ These are 1K 4-bit RAM chips. 2 wired together make 1K of 8-bit RAM.
+Texas Instrument sn74ls10n-10
+ NAND gates (glue logic)
+National Semiconductor (NSC) SP8323* DM74LS04N
+ hex inverting gates (glue logic)
+NEC D2732D 8335PX052
+ 4K 8-bit EPROM
+
+Emulation Notes
+---------------
+
+Interton VC 4000: assumed behaviour is that the low nybbles of CONSOLE
+and
+ PnFOOKEYS are set to %1111, the same as is proven to occur on an
+Elektor
+ TVGC.
+
+
+Gridlines that are the same colour as the background (ie. invisible)
+don't register collisions. This seems to be the correct behaviour.
+
+Based on Catapult, Destroyer and Submarine+Racing (all
+for Elektor), the real PVI probably doesn't involve the
+digits in collision detection.
+
+ESS-011-7-OmegaLanding and ESS-011-D-Painting seem to expect
+collisions at the far left (< 9) to not register.
+
+"Unlike SPRITEnAX and SPRITEnAY, SPRITEnBX and SPRITEnBY may
+be changed during the scan [(frame)] and such changes will be effected
+on the current scan [(frame)]. SPRITEnBX is sampled during each HRST
+[(horizontal reset)]. Thus, if SPRITEnBX is changed during the
+display of a duplicate, a portion of the object will be
+displaced horizontally. For proper operation, SPRITEnBX should
+be changed only *after* the 'Object Video Completion' status
+bit [in BGCOLLIDE] indicates completion of the object.
+SPRITEnBY is sampled just prior to displaying the last line of
+the object. To effect a change in the vertical offset to the
+next duplicate, SPRITEnBY must be changed *before* the 'Object
+Video Completion' status bit [in BGCOLLIDE] indicates
+completion of the object." - PVI manual, p. 5. But that is incorrect as
+CIRCUS relies on being able to change SPRITEnAX so that the balloons are
+drawn properly.
+
+END OF DOCUMENT-----------------------------------------------------------

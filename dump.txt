@@ -1,0 +1,3 @@
+DUMP
+
+This function outputs the contents of the selected binary file to the shared RAM.

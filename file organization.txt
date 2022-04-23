@@ -1,0 +1,38 @@
+FILE TYPES
+==========
+This system works with three files types:
+	.asm   -  the plain text file that you want to assemble
+	.bin   -  the binary code that you want to run on the console
+	.lst   -  the assembly listing
+	
+	
+BEHAVIOUR
+=========
+When the assembler runs, it places the resulting .bin and .lst files in the same directory from which it fetched the .asm file.
+
+You can also choose to dump binaries from any folder, such as one where you might keep files dumped from original games cartridges.
+
+When a file is saved in the editor, the .asm file path is set as the current file in the Assemble tab.
+
+When an assembly is successful, the .bin file path is set as the current file in the Dump tab. 
+
+
+ARCHIVING
+=========
+The assembler has the option of automatically saving every .asm file that it assembles. These will be saved in an Archive folder under the folder that the original file is saved. These archived files will automatically have a version number appended to the end of their filename.
+For example:
+   /home/pi/Desktop/My2650projects/Tutorials/objects.asm
+will be archived at:
+   /home/pi/Desktop/My2650projects/Tutorials/archive/objects_7.asm
+
+The serial number sequence is independent of file name. Following the example above, whatever file you assemble next, it will be numbered 8:
+   /home/pi/Desktop/My2650projects/Tutorials/archive/sound_8.asm
+
+The purpose of the archive is to make it easy to keep past versions of your code so that they can be reverted to if newer versions don't perform as expected or break something. 
+
+Typically during development you will run the assembler many times to get one new feature working properly. Unless you have kept a changelog it will be difficult to determine good versions from bad. One easy way to do this is to run the assembler on the archived version of good code, which will create a second level of archive folder:
+   /home/pi/Desktop/My2650projects/Tutorials/archive/archive/sound_8_16.asm
+
+In this way you have one level of archives that save every file with no assembly errors, and a second level wit files that perform correctly
+
+

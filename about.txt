@@ -1,0 +1,44 @@
+ABOUT
+
+The Voltmace Database development system was created by Derek Andrews in 2021.
+
+The core of the system is an assembler for the Signetics 2650 microprocessor. Work flow progresses seemlessly through edit, assemble, dump and view listing.
+
+It is designed to run on a Raspberry Pi400 and connects to the games console via the GPIO port and an interface board which comprises some glue logic and one (or more) dual-port RAMs.
+
+Currently the prototype interface board has one dual-port 4k RAM chip which emulates a ROM for the console. This will gradually be expanded to 8k, with the option of configuring part of the top 4k to behave as RAM for the console.
+
+It should be straightforward to adapt it to work on other software compatible consoles, and possibly the Emerson Arcadia. 
+
+
+The editor and assembler should work standalone. On other platforms such as Windows it requires a mock GPIOzero.py module.
+
+CONTACT ME
+https://sig2650.wordpress.com/
+https://github.com/sig2650
+https://twitter.com/Sig2650
+derek.a@outlook.com
+
+
+ACKNOWLEDGEMENTS
+
+This project would never have happened without a vast amount of information, inspiration and serendipity.
+
+The late Tony Pearmain who hired me to write video games at Voltmace.
+
+The websites I discovered a couple of decades later that had information about the Voltmace Database and who interviewed me.
+
+The eBay seller who recognized my name and sent me not one but two consoles at a very favourable price.
+
+James Jacobs for his vast collection of information about the consoles and games, and for the WinArcadia emulator that I have been working with until now.
+https://amigan.yatho.com/
+
+Chris Dymond, aka Dead Flesh Retro for his enthusiasm for this family of consoles and motivating me to actually do this.
+https://www.youtube.com/channel/UC21J52nwWMdnsBUyk2sXn8A
+
+All the content creators on the web that have helped me learn enough Python and Tkinter to be able to write this software, particularly on YouTube and StackOverflow.
+
+
+
+
+

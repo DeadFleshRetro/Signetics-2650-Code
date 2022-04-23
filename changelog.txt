@@ -1,0 +1,52 @@
+pi2650  CHANGELOG
+=================
+
+0_104 15 Oct 2021
+ASSEMBLER, fix bugs for strz and andz instructions
+EDITOR, add basic CtrlF hotkey
+ASSEMBLER, fix bug with duplicated labels that end with a colon
+ASSEMBLER, fix bugs with range of relative addressing
+ASSEMBLER, fix bug in constants table for dar instruction
+ASSEMBLER now recognizes 'Hff' format
+EDITOR, Add Ctrl> and Ctrl< hotkeys 
+EDITOR, Add CtrlA hotkey 
+
+0_103 2 Oct 2021
+Settings: Adjust text size in EDIT, ASSEMBLE, DUMP, VIEW text boxes.
+Settings: Adjust number of lines in each text window.
+List file: Only print address on lines with machine code.
+List file: Add extra tab to 'fix' problems with tab stops.
+Assembler: Enable z, p, n as conditional tests
+Add VIEW and SETTINGS tabs
+Move Initial_prefs to constants.py
+Assembler: Disable typing in assemble window at startup
+Dump & Assemble: Add 'clear window' button
+Help: Updated file_organization.txt
+Assembler: have a slight delay before printing the timestamp as visual cue
+Dump: make message display 'please wait' before pause
+Edit: Add button to show hotkeys in pop-up; remove hotkeys from main window
+
+
+0_102 24 Sept 2021
+Move contents of help folder to root directory to make installation easier
+Move changelog to help folder and add to menu.
+Implement editor
+
+
+0_101 21 Sept 2021
+Fix typo in assembler help document.
+Fix tab alignment in .lst file.
+If assembly is successful, the binary becomes current in dump tab.
+Add number of machine cycles to .lst file.
+'What is your name' box now opens on top.
+Enable setting of a default directory for opening .asm files.
+Delete radio buttons for auto_run, list name and list date.
+Add timestamp to assembler report
+Somewhat fix issue of asm recent combobox not showing topmost item.
+Implement auto_archiving.
+Allow blank qualifier for indexed instructions, adda	$1f00,r2+
+Make combobox more expandable in assembler tab.
+
+
+0_100 18 Sept 2021
+First version. Released to Chris Dymond. Assembler, dump and help tabs working.

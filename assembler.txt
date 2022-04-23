@@ -1,0 +1,69 @@
+ASSEMBLER
+=========
+
+This function assembles the selected .asm file (a plain text file with the file extension .asm). If there are no errors it creates a .bin file (the code that the console will run) and a .lst file (another text file with the assembly listing).
+
+Workflow of the system is quite straightforward. When a file has been edited and saved, it is set as the current file in the assembler tab. Once assembled successfully the resulting binary becomes the current file in the dump tab.
+
+An auto-archive capability allows easy access to previous versions of assembled code in the event that new edits don't work out. See the File Organization page for details of the auto-archiving feature.
+
+
+SYNTAX 
+======	
+This assembler mostly follows standard Signetics syntax as defined in the 2650 User Manual.
+
+Its incorporates a good deal of syntax checking. If you find problems or crashes let me know and I will try to fix them. derek.a@outlook.com 
+
+A few extensions have been added to make coding easier.
+
+2650 assembler looks something like this:
+
+addr1	equ	$1f00
+	org	025
+data1	db	$A5	
+	loda,r0 addr1,r1+	;read indexed variable
+t2	addi,r1 data1	
+	bcta,eq t2
+	eorz	r0
+	
+	
+A SEMICOLON (;) indicates the start of a COMMENT which is only terminated by the end of line.
+
+The assembler is not sensitive to CASE. Internally all uppercase characters are converted to lowercase. The case used in the .asm file is preserved for the .lst file.	
+
+Numbers can be represented as binary, decimal or hexadecimal:
+	Binary: %10010011
+		0b10010011
+	Decimal: 29
+	Hexadecimal:	$FA
+			0xFA
+			H'FA'
+
+LABELS must start in the first column. 
+They can contain no spaces, semicolons or asterisks, but there are no other restrictions on character set. They should not however begin with $, 0x, 0b or %.
+They are not restricted in length. If they aren't part of an EQU statement,they may appear on a line of their own:
+
+aLabel	equ	$1A
+	lodi,r1	alabel	; alabel is the same as aLabel
+AVeryLongTediousLabel
+	stra,r1	Object1Position	
+aLongLabel	equ	$42
+	
+	
+Two additional CONDITION CODES have been added to make bit testing easier to comprehend. Valid condition codes are:
+	eq  -  equal
+	gt  -  greater than
+	lt  -  less than
+	un  -  unconditional
+	a1  -  all 1's
+	s0  -  some 0's
+	
+	
+COMPATIBILITY WITH WINARCADIA ASSEMBLER
+=======================================
+The WinArcadia assembler uses colons at the end of a label definition. For the sake of compatibility, this assembler ignores a colon at the end of a label definition. The WinArcadia assembler will not accept the new condition codes 'a1' and 's0'.	
+
+
+ERROR REPORTS
+=============
+This is a two-pass assembler. If errors are found during the first pass the assembly will be terminated and those errors reported. Pass two will only run when pass 1 is successful, and it in turn will report any errors it finds. The binary, list and archive files will only be generated when both passes are successful.
