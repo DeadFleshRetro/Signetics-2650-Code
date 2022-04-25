@@ -156,9 +156,6 @@ joystick_up:
 	comi,r1	gridtop			; are we in the top row? I.e. against the top edge limit
 	retc,eq					; if we are, then just return
 
-;	lodi,r0	%00111111		; check we got here by turning shapes 3&4 black
-;	stra,r0	colours34
-
 	addi,r1	4				; erase the current menu selection bottom bar
 	lodi,r0 0				
 	stra	gridstart,r1	
@@ -176,9 +173,6 @@ joystick_down:
 	loda,r1	menupos			; load the current menu position offset into r3
 	comi,r1	gridbottom		; are we at the bottom of the grid?
 	retc,eq					; if we are, then just return
-
-;	lodi,r0	%00111111		; check we got here by turning shapes 1&2 black
-;	stra,r0	colours12
 
 	lodi,r0 0				; erase the current menu selection top bar
 	stra	gridstart,r1	
@@ -339,20 +333,22 @@ Wait_obj:
 one:
 	db	%00000000
 	db	%00000000
+	db	%00000000
+	db	%00000000
 	db	%01001100
 	db 	%11101010
 	db	%10101100
 	db	%11101010
 	db	%10101010
 	db	%10101100
-	db	%00000000
-	db	%00000000
 	db	64		;hc
 	db	64		;hcb
-	db	20		;vc
+	db	16		;vc
 	db	255		;voff
 
 two:
+	db	%00000000
+	db	%00000000
 	db	%00000000
 	db	%00000000
 	db	%01001100
@@ -361,13 +357,13 @@ two:
 	db	%10001010
 	db	%10101010
 	db	%01001100
-	db	%00000000
-	db	%00000000
 	db	80		;hc
 	db	80		;hcb
-	db	20		;vc
+	db	16		;vc
 	db	255		;voff
 three:
+	db	%00000000
+	db	%00000000
 	db	%00000000
 	db	%00000000
 	db	%11101110
@@ -376,13 +372,13 @@ three:
 	db	%10001000
 	db	%10001000
 	db	%11101000
-	db	%00000000
-	db	%00000000
 	db	96		;hc
 	db	96		;hcb
-	db	20		;vc
+	db	16		;vc
 	db	255		;voff
 four:
+	db	%00000000
+	db	%00000000
 	db	%00000000
 	db	%00000000
 	db	%01001010
@@ -391,11 +387,9 @@ four:
 	db	%10001010
 	db	%10101010
 	db	%01101010
-	db	%00000000
-	db	%00000000
 	db	112		;hc
 	db	112		;hcb
-	db	20		;vc
+	db	16		;vc
 	db	255		;voff
 
 
