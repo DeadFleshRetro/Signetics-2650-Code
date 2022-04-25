@@ -143,7 +143,7 @@ Stop_sounds:
 
 Joystick_1V
 	bsta,un	Vsync1			; gosub > Vsync1 (wait for the vertical reset to begin)
-	ppsu	flag			; clear flag to 1 (read vertical pots) ISN'T THIS WRONG??
+	ppsu	flag			; set flag to 1 (read vertical pots)
 	loda,r0	joystick1		; load the value of joystick1 into register 0
 	comi,r0	$20				; compare the controller value with 32
 	bctr,lt joystick_up		; if it's less than 32, then go to joystick_up
@@ -153,22 +153,20 @@ Joystick_1V
 	
 joystick_up:
 	loda,r1	menupos			; load the current vertical coordinate into r3
-	comi,r1	gridtop			; are we in the top row? I.e. against the top edge limit
+	comi,r1	gridtop			; are we in the top grid row?
 	retc,eq					; if we are, then just return
 
-;	lodi,r0	%00111111		; check we got here by turning shapes 3&4 black
-;	stra,r0	colours34
-
-	addi,r1	4				; erase the current menu selection bottom bar
-	lodi,r0 0				
+	addi,r1	4				; we're not, so move where we're pointing to the bottom bar
+	lodi,r0 0				; and erase it
 	stra	gridstart,r1	
 	stra	gridstart,r1+
 	subi,r1	9				; move where we're pointing all the way up to where
-	lodi,r0	$FF				; the new top bar should go and draw it
+	lodi,r0	%00000111		; the new top bar should go and draw it
 	stra	gridstart,r1
+	lodi,r0	%11100000
 	stra	gridstart,r1+
 	subi,r1 1				; move the pointer back to the left top bar
-	stra,r1	menupos			; write it back to the menu offset
+	stra,r1	menupos			; write it back to the menu offset variable
 	bsta,un	Play_move_sound	; gosub > Play the movement sound
 	retc,un					; return		
 
@@ -184,8 +182,9 @@ joystick_down:
 	stra	gridstart,r1	
 	stra	gridstart,r1+
 	addi,r1	7				; move where we're pointing to where we want the new bottom bar
-	lodi,r0	$FF				; and draw it
+	lodi,r0	%00000111 		; and draw it
 	stra	gridstart,r1
+	lodi,r0	%11100000
 	stra	gridstart,r1+
 	subi,r1	5				; more where we're pointing back to the now top bar
 	stra,r1	menupos			; write it back to the menu offset
@@ -262,7 +261,7 @@ loopDS_01:
 	stra,r0	colours12
 	lodi,r0	%00100100
 	stra,r0	colours34
-	lodi,r0	%01010101
+	lodi,r0	%00000000
 	stra,r0	objectsize
 	retc,un					; return from sub routine
 
@@ -347,10 +346,10 @@ one:
 	db	%10101100
 	db	%00000000
 	db	%00000000
-	db	64		;hc
-	db	64		;hcb
-	db	20		;vc
-	db	255		;voff
+	db	80		;hc
+	db	80		;hcb
+	db	25		;vc
+	db	9		;voff
 
 two:
 	db	%00000000
@@ -363,10 +362,10 @@ two:
 	db	%01001100
 	db	%00000000
 	db	%00000000
-	db	80		;hc
-	db	80		;hcb
-	db	20		;vc
-	db	255		;voff
+	db	88		;hc
+	db	88		;hcb
+	db	25		;vc
+	db	9		;voff
 three:
 	db	%00000000
 	db	%00000000
@@ -380,8 +379,8 @@ three:
 	db	%00000000
 	db	96		;hc
 	db	96		;hcb
-	db	20		;vc
-	db	255		;voff
+	db	25		;vc
+	db	9		;voff
 four:
 	db	%00000000
 	db	%00000000
@@ -393,17 +392,17 @@ four:
 	db	%01101010
 	db	%00000000
 	db	%00000000
-	db	112		;hc
-	db	112		;hcb
-	db	20		;vc
-	db	255		;voff
+	db	104		;hc
+	db	104		;hcb
+	db	25		;vc
+	db	9		;voff
 
 
 ; Grid Data
 grid:
-	dw	%1111111111111111
+	dw	%0000011111100000
 	dw	%0000000000000000
-	dw	%1111111111111111
+	dw	%0000011111100000
 	dw	%0000000000000000
 	dw	%0000000000000000
 	dw	%0000000000000000
