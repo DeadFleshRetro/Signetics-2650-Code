@@ -2,6 +2,7 @@
 ; Menu - Attempt to create a paginating textual menu system for, e.g., game selection. 
 ; 
 ;
+;
 ;========================================================================================
 
 ; PROCESSOR CONSTANTS
@@ -24,28 +25,24 @@ sound			equ	%11000100
 effects			equ	$1e80	; location of the 74LS378
 
 object1			equ	$1f00	; mem locations of object/shape 1
-shape1			equ	$1f00	; 
 hc1				equ	$1f0a	; hc = Horizontal Coordinate
 hcd1			equ	$1f0b	; hcd = Horizontal Coordinate Duplicate
 vc1				equ	$1f0c	; vc = Vertical Coordinate
 voff1			equ	$1f0d	; voff = Vertical Offset
 
 object2			equ	$1f10
-shape2			equ	$1f10
 hc2				equ	$1f1a
 hcd2			equ	$1f1b
 vc2				equ	$1f1c
 voff2			equ	$1f1d
 
 object3			equ	$1f20
-shape3			equ	$1f20
 hc3				equ	$1f2a
 hcd3			equ	$1f2b
 vc3				equ	$1f2c
 voff3			equ	$1f2d
 
 object4			equ	$1f40
-shape4			equ	$1f40
 hc4				equ	$1f4a
 hcd4			equ	$1f4b
 vc4				equ	$1f4c
@@ -72,7 +69,10 @@ gridstart		equ $1F80	; location of background grid
 joystick1		equ	$1fcc	; location of joystick 1 value
 joystick2		equ $1fcd	; location of joystick 2 value
 
-pausecounter	equ	$1f0e   ; location of the pause counter in scratch memory
+; RAM
+
+pausecounter	equ	$1f0e   ; RAM location of the pause counter in scratch memory
+menupos			equ	$1f0f	; location of current menu position offset (from gridstart) in grid memory
 
 ;=============================================================================
 ; PROGRAM CONSTANTS
@@ -83,13 +83,15 @@ pausecounter	equ	$1f0e   ; location of the pause counter in scratch memory
 ; has to be found and changed once.
 
 stdpause		equ	2
-movepitch		equ	$10
+movepitch		equ	$20
 leftlimit		equ 29
 rightlimit		equ 149
 toplimit		equ	30
 bottomlimit		equ 186
 obj1animframes	equ 40
-gridpos			equ gridstart
+gridtop			equ 0
+gridbottom		equ 32
+
 
 ;=============================================================================
 ; PROGRAM START
@@ -109,6 +111,7 @@ reset:
 	cpsl	compare			; arithmetic compare
 
 	eorz	r0				; clear register 0
+	stra,r0	menupos			; clear the menu position offset
 	stra,r0	effects			; initialise the 74LS378
 	bsta,un	InitPVI			; gosub > Initialise the video chip
 	bsta,un	Define_objects	; gosub > Define the initial shape and location of all objects
@@ -120,6 +123,7 @@ reset:
 endless:
 
 	bsta,un	Wait_vert_reset	; gosub > wait for vertical reset
+	bsta,un	Stop_sounds		; gosub > stop all sounds
 	bsta,un	Joystick_1V		; gosub > check the vertical pot of joystick 1
 	lodi,r0	stdpause
 	bsta,un	Pause			; gosub > pause
@@ -139,52 +143,62 @@ Stop_sounds:
 
 Joystick_1V
 	bsta,un	Vsync1			; gosub > Vsync1 (wait for the vertical reset to begin)
-	cpsu	flag			; clear flag to 1 (read vertical pots)
+	ppsu	flag			; clear flag to 1 (read vertical pots) ISN'T THIS WRONG??
 	loda,r0	joystick1		; load the value of joystick1 into register 0
 	comi,r0	$20				; compare the controller value with 32
-	bctr,lt	joystick_up		; if it's less than 32, then go to joystick_up
+	bctr,lt joystick_up		; if it's less than 32, then go to joystick_up
 	comi,r0	$B8				; compare it to 184 (everything in between we're calling dead-spot)
 	bctr,gt	joystick_down	; if it's more than 184, then go to joystick_down
 	retc,un					; return from subroutine
 	
 joystick_up:
-	loda,r3	vc1				; load the current vertical coordinate into r3
-	comi,r3	toplimit		; are we in the top row? I.e. against the top edge limit
-	retc,lt					; if we are, then just return
+	loda,r1	menupos			; load the current vertical coordinate into r3
+	comi,r1	gridtop			; are we in the top row? I.e. against the top edge limit
+	retc,eq					; if we are, then just return
 
+;	lodi,r0	%00111111		; check we got here by turning shapes 3&4 black
+;	stra,r0	colours34
 
-	loda,r2	gridoffset		; we're not, so load the gridoffset into r2
-	subi,r2	4				; take 4 off it to reflect the byte of grid definition we're moving to
-	loda,r1	gridmask		; load the current grid mask into r1
-	bsta,un	Can_I_move		; gosub > Can I move, i.e. check if there's a dot to move to?
-	brnr,r0	move_up			; if there is a dot, move the object up
-	retc,un					; return from subroutine
-	
-move_up:
-;	bsta,un	Play_move_sound	; gosub > Play the movement sound
-	subi,r3	20				; subtract 20 from the vertical coordinate
-	stra,r3	vc1				; write back all three values
-	stra,r2	gridoffset		;
-	stra,r1	gridmask		;
-	retc,un					; return from subroutine
+	addi,r1	4				; erase the current menu selection bottom bar
+	lodi,r0 0				
+	stra	gridstart,r1	
+	stra	gridstart,r1+
+	subi,r1	9				; move where we're pointing all the way up to where
+	lodi,r0	$FF				; the new top bar should go and draw it
+	stra	gridstart,r1
+	stra	gridstart,r1+
+	subi,r1 1				; move the pointer back to the left top bar
+	stra,r1	menupos			; write it back to the menu offset
+	bsta,un	Play_move_sound	; gosub > Play the movement sound
+	retc,un					; return		
 
 joystick_down:
-	loda,r3	vc1				; load the current vertical coordinate into r3
-	comi,r3 bottomlimit		; are we in the bottom row? I.e. against the bottom edge limit
-	retc,gt					; if we are, then just return
-	loda,r2	gridoffset		; we're not, so load the gridoffset into r2
-	addi,r2	4				; add 4 to it to reflect the byte of grid definition we're moving to
-	loda,r1	gridmask		; load the current gridmask into r1
-	bsta,un	Can_I_move		; gosub > Can I move, i.e. check if there's a dot to move to?
-	brnr,r0	move_down		; if there is a dot, move the object down
-	retc,un
+	loda,r1	menupos			; load the current menu position offset into r3
+	comi,r1	gridbottom		; are we at the bottom of the grid?
+	retc,eq					; if we are, then just return
 
-move_down:
+;	lodi,r0	%00111111		; check we got here by turning shapes 1&2 black
+;	stra,r0	colours12
+
+	lodi,r0 0				; erase the current menu selection top bar
+	stra	gridstart,r1	
+	stra	gridstart,r1+
+	addi,r1	7				; move where we're pointing to where we want the new bottom bar
+	lodi,r0	$FF				; and draw it
+	stra	gridstart,r1
+	stra	gridstart,r1+
+	subi,r1	5				; more where we're pointing back to the now top bar
+	stra,r1	menupos			; write it back to the menu offset
 	bsta,un	Play_move_sound	; gosub > Play the movement sound
-	addi,r3 20				; add 20 to the vertical coordinate
-	stra,r3	vc1				; write back all three values
-	stra,r2	gridoffset		;
-	stra,r1	gridmask		;
+	retc,un					; return
+
+
+;===================================================================
+; subroutine - Play the movement sound
+
+Play_move_sound:
+	lodi,r0	movepitch		; play movement tone
+	stra,r0	pitch			;
 	retc,un					; return from subroutine
 
 
@@ -260,7 +274,7 @@ Set_grid:
 loopDS_02:
 	loda,r0	grid,r3-        ; load the grid data into memory locations from gridstart onwards
 	stra,r0	gridstart,r3
-	brnr,r3	loopDS_02
+	brnr,r3	loopDS_02		; loop back if r3 is non-zero
     retc,un                 ; return from subroutine
 
 ;=================================================================
@@ -333,8 +347,8 @@ one:
 	db	%10101100
 	db	%00000000
 	db	%00000000
-	db	36		;hc
-	db	36		;hcb
+	db	64		;hc
+	db	64		;hcb
 	db	20		;vc
 	db	255		;voff
 
@@ -349,8 +363,8 @@ two:
 	db	%01001100
 	db	%00000000
 	db	%00000000
-	db	52		;hc
-	db	52		;hcb
+	db	80		;hc
+	db	80		;hcb
 	db	20		;vc
 	db	255		;voff
 three:
@@ -364,8 +378,8 @@ three:
 	db	%11101000
 	db	%00000000
 	db	%00000000
-	db	68		;hc
-	db	68		;hcb
+	db	96		;hc
+	db	96		;hcb
 	db	20		;vc
 	db	255		;voff
 four:
@@ -379,36 +393,36 @@ four:
 	db	%01101010
 	db	%00000000
 	db	%00000000
-	db	84		;hc
-	db	84		;hcb
+	db	112		;hc
+	db	112		;hcb
 	db	20		;vc
 	db	255		;voff
 
 
 ; Grid Data
 grid:
-	dw	%0111111111111111
-	dw	%0000000000000000
-	dw	%1111111111111111
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
-	dw	%0000000000000000
 	dw	%1111111111111111
 	dw	%0000000000000000
 	dw	%1111111111111111
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
+	dw	%0000000000000000
 	dw	%0000000000000000
 	db	%00001001
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
+	db	%00001001
+	db	%00001001
+	db	%00001001
+	db	%00001001
