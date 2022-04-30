@@ -73,6 +73,7 @@ joystick2		equ $1fcd	; location of joystick 2 value
 
 pausecounter	equ	$1f0e   ; RAM location of the pause counter in scratch memory
 menupos			equ	$1f0f	; location of current menu position offset (from gridstart) in grid memory
+itempointer		equ	$1f1e	; location of menu item pointer for writing shape data 
 
 ;=============================================================================
 ; PROGRAM CONSTANTS
@@ -88,9 +89,9 @@ leftlimit		equ 29
 rightlimit		equ 149
 toplimit		equ	30
 bottomlimit		equ 186
-obj1animframes	equ 40
 gridtop			equ 0
 gridbottom		equ 32
+menuitem		equ 21
 
 
 ;=============================================================================
@@ -122,9 +123,10 @@ reset:
 
 endless:
 
-	bsta,un	Wait_vert_reset	; gosub > wait for vertical reset
 	bsta,un	Stop_sounds		; gosub > stop all sounds
-	bsta,un	Joystick_1V		; gosub > check the vertical pot of joystick 1
+	bsta,un	Wait_vert_reset	; gosub > wait for the vertical reset
+	bsta,un WriteMenuItems	; gosub > write all the menu items
+	bsta,un	Joystick_1V		; gosub > CHeck joystick 1 and move the menu selector 
 	lodi,r0	stdpause
 	bsta,un	Pause			; gosub > pause
 	bctr,un	endless			; return to the beginning of the endless loop
@@ -139,11 +141,34 @@ Stop_sounds:
 	retc,un					; return from subroutine
 
 ;===================================================================
+; subroutine - Write all the menu items for the current page
+
+WriteMenuItems:
+	bsta,un	Wait_obj4_complete	; wait for object 4 to finish writing
+	lodi,r1	20		; get the item pointer (shape data is read backwards)
+loopWMI_01
+	lodi,r2 10
+loopWMI_02
+	subi,r2 1
+	loda,r0	obj1frames,r1-
+	stra,r0	object1,r2
+	loda,r0	obj2frames,r1	
+	stra,r0	object2,r2
+	loda,r0	obj3frames,r1
+	stra,r0	object3,r2
+	loda,r0	obj4frames,r1
+	stra,r0	object4,r2
+	brnr,r2	loopWMI_02
+	comi,r1	1
+	bctr,gt	loopWMI_01
+	retc,un
+
+;===================================================================
 ; subroutine - Check vertical pot on Joystick 1
 
 Joystick_1V
 	bsta,un	Vsync1			; gosub > Vsync1 (wait for the vertical reset to begin)
-	ppsu	flag			; clear flag to 1 (read vertical pots) ISN'T THIS WRONG??
+	ppsu	flag			; set flag to 1 (read vertical pots) ISN'T THIS WRONG??
 	loda,r0	joystick1		; load the value of joystick1 into register 0
 	comi,r0	$20				; compare the controller value with 32
 	bctr,lt joystick_up		; if it's less than 32, then go to joystick_up
@@ -307,12 +332,12 @@ loopWVR_02					; wait here while Sense line is LOW (now just waiting for VRST to
 	retc,un					; return from subroutine
 
 ;=============================================================
-;subroutine - wait for object 1 to finish
+;subroutine - wait for object 4 to finish
 
-Wait_obj1_complete
+Wait_obj4_complete
 	loda,r3	objectstatus	; load the current object status into register 3
-	tmi,r3	$08				; test bit 3 - object 1 completion
-	bcfa,eq	Wait_obj1_complete	; wait if object 1 has not completed (if != then loop back)
+	tmi,r3	$01				; test bit 3 - object 4 completion
+	bcfa,eq	Wait_obj4_complete	; wait if object 4 has not completed (if != then loop back)
 	retc,un					; return from subroutine
 	
 ;=============================================================
@@ -392,7 +417,6 @@ four:
 	db	16		;vc
 	db	255		;voff
 
-
 ; Grid Data
 grid:
 	dw	%1111111111111111
@@ -420,3 +444,103 @@ grid:
 	db	%00001001
 	db	%00001001
 	db	%00001001
+
+; Object 1
+obj1frames
+;11
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+;12
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+
+; Object 2
+obj2frames
+;21
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+;22
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+
+; Object 3
+obj3frames
+;31
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+;32
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
+
+; Object 4
+obj4frames
+;41
+	db	%10000000
+	db	%01000000
+	db	%00100000
+	db	%00010000
+	db	%00001000
+	db 	%00000100
+	db	%00000010
+	db	%00000001
+	db	%00000010
+	db	%00000100
+;42
+	db	%00010000
+	db	%00001000
+	db	%00010000
+	db	%00001000
+	db	%01011100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
