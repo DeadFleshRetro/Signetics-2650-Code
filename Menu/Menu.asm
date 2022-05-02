@@ -121,8 +121,8 @@ reset:
 	lodi,r0	sound			; enable PVI sounds
 	stra,r0	effects			;
 
-endless:
 
+endless:
 	bsta,un	Stop_sounds		; gosub > stop all sounds
 	bsta,un	Wait_vert_reset	; gosub > wait for the vertical reset
 	bsta,un WriteMenuItems	; gosub > write all the menu items
@@ -151,7 +151,7 @@ loopWMI_01:
 	lodi,r3 6
 loopWMI_02:
 	subi,r3 1
-	
+
 	loda,r0	obj1frames,r2-
 	stra,r0	object1,r3
 	loda,r0	obj2frames,r2	
