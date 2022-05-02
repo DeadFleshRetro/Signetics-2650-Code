@@ -24,25 +24,25 @@ sound			equ	%11000100
 
 effects			equ	$1e80	; location of the 74LS378
 
-object1			equ	$1f00	; mem locations of object/shape 1
+object1			equ	$1f04	; mem locations of object/shape 1
 hc1				equ	$1f0a	; hc = Horizontal Coordinate
 hcd1			equ	$1f0b	; hcd = Horizontal Coordinate Duplicate
 vc1				equ	$1f0c	; vc = Vertical Coordinate
 voff1			equ	$1f0d	; voff = Vertical Offset
 
-object2			equ	$1f10
+object2			equ	$1f14
 hc2				equ	$1f1a
 hcd2			equ	$1f1b
 vc2				equ	$1f1c
 voff2			equ	$1f1d
 
-object3			equ	$1f20
+object3			equ	$1f24
 hc3				equ	$1f2a
 hcd3			equ	$1f2b
 vc3				equ	$1f2c
 voff3			equ	$1f2d
 
-object4			equ	$1f40
+object4			equ	$1f44
 hc4				equ	$1f4a
 hcd4			equ	$1f4b
 vc4				equ	$1f4c
@@ -115,7 +115,7 @@ reset:
 	stra,r0	menupos			; clear the menu position offset
 	stra,r0	effects			; initialise the 74LS378
 	bsta,un	InitPVI			; gosub > Initialise the video chip
-	bsta,un	Define_objects	; gosub > Define the initial shape and location of all objects
+	bsta,un	Define_objects	; gosub > Define the initial size & colours of all objects
     bsta,un Set_grid        ; gosub > Set the initial grid
 
 	lodi,r0	sound			; enable PVI sounds
@@ -144,24 +144,31 @@ Stop_sounds:
 ; subroutine - Write all the menu items for the current page
 
 WriteMenuItems:
-	bsta,un	Wait_obj4_complete	; wait for object 4 to finish writing
-	lodi,r1	20		; get the item pointer (shape data is read backwards)
-loopWMI_01
-	lodi,r2 10
-loopWMI_02
-	subi,r2 1
-	loda,r0	obj1frames,r1-
-	stra,r0	object1,r2
-	loda,r0	obj2frames,r1	
-	stra,r0	object2,r2
-	loda,r0	obj3frames,r1
-	stra,r0	object3,r2
-	loda,r0	obj4frames,r1
-	stra,r0	object4,r2
-	brnr,r2	loopWMI_02
-	comi,r1	1
-	bctr,gt	loopWMI_01
+	bsta,un SetObjLocations	; set the initial object locations
+	lodi,r2	18
+	lodi,r1	2
+loopWMI_01:
+	lodi,r3 6
+loopWMI_02:
+	subi,r3 1
+	
+	loda,r0	obj1frames,r2-
+	stra,r0	object1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	object2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	object3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	object4,r3
+
+	brnr,r3	loopWMI_02
+	brnr,r1 WMI_03
+;	bsta,un ThrowObjLocations
 	retc,un
+WMI_03:	
+	subi,r1	1
+	bsta,un Wait_obj4_complete
+	bctr,un loopWMI_01
 
 ;===================================================================
 ; subroutine - Check vertical pot on Joystick 1
@@ -260,24 +267,10 @@ branchP_01:
 	bctr,un	loopP_01		; go back to top and wait for next frame
 
 ;===================================================================
-; subroutine  -  define shapes, positions, colours & sizes of all objects
+; subroutine  - colours & sizes of all objects
 
 Define_objects
-; Load Objects into PVI
-	lodi,r3	14              ; set the decrement counter to 14 (bytes per object)
-loopDS_01:
-	loda,r0	one,r3-         ; load each byte from the Data statements, including positions, etc.
-	stra,r0	object1,r3
-	loda,r0	two,r3
-	stra,r0	object2,r3
-	loda,r0	three,r3
-	stra,r0	object3,r3
-	loda,r0	four,r3
-	stra,r0	object4,r3
-	brnr,r3	loopDS_01
-
-; Set initial object colour and size data
-	lodi,r0	%00100100
+	lodi,r0	%00100100		; Set initial object colour and size data
 	stra,r0	colours12
 	lodi,r0	%00100100
 	stra,r0	colours34
@@ -286,7 +279,7 @@ loopDS_01:
 	retc,un					; return from sub routine
 
 ;===================================================================
-; subroutine  -  set the initial grid configuration
+; subroutine  - set the initial grid configuration
 
 Set_grid:
 	lodi,r3	45              ; set the decrement counter to 45 (to cover all of grid memory)
@@ -295,6 +288,34 @@ loopDS_02:
 	stra,r0	gridstart,r3
 	brnr,r3	loopDS_02		; loop back if r3 is non-zero
     retc,un                 ; return from subroutine
+
+;===================================================================
+; subroutine  - set the initial object locations
+
+SetObjLocations:
+	lodi,r3	4				; set the decrement counter to 4 (bytes per object)
+loopSOL_01:
+	loda,r0	one,r3-			; load each byte from the Data statements, including positions, etc.
+	stra,r0	hc1,r3
+	loda,r0	two,r3
+	stra,r0	hc2,r3
+	loda,r0	three,r3
+	stra,r0	hc3,r3
+	loda,r0	four,r3
+	stra,r0	hc4,r3
+	brnr,r3	loopSOL_01
+	retc,un					; return from subroutine
+
+;===================================================================
+; subroutine  - throw duplicate object locations off screen
+
+ThrowObjLocations:
+	lodi,r0	128
+	stra,r0	hcd1
+	stra,r0	hcd2
+	stra,r0	hcd3
+	stra,r0	hcd4
+	retc,un					; return from subroutine
 
 ;=================================================================
 ; subroutine - wait for vertical reset to clear
@@ -335,20 +356,9 @@ loopWVR_02					; wait here while Sense line is LOW (now just waiting for VRST to
 ;subroutine - wait for object 4 to finish
 
 Wait_obj4_complete
-	loda,r3	objectstatus	; load the current object status into register 3
-	tmi,r3	$01				; test bit 3 - object 4 completion
-	bcfa,eq	Wait_obj4_complete	; wait if object 4 has not completed (if != then loop back)
-	retc,un					; return from subroutine
-	
-;=============================================================
-;subroutine - wait for object to finish
-;  enter with r1=mask for bit to be tested:
-;	obj1=$08, obj2=$04, obj3=$02, obj4=$01
-
-Wait_obj:
-	loda,r0 objectstatus	; load the current object status into register 0
-	andz	r1				; AND the r0 against the input mask in r1
-	bctr,eq	Wait_obj		; While the condition codes are showing true, loop back
+	loda,r0	objectstatus	; load the current object status into register 3
+	tmi,r0	$01				; test bit 3 - object 1 completion
+	bcfa,eq	Wait_obj4_complete	; wait if object 1 has not completed (if != then loop back)
 	retc,un					; return from subroutine
 
 ;=============================================================
@@ -356,62 +366,22 @@ Wait_obj:
 
 ; Object Data
 one:
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%01001100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
-	db	%10101010
-	db	%10101100
 	db	64		;hc
 	db	64		;hcb
 	db	16		;vc
 	db	255		;voff
 
 two:
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%01001100
-	db 	%10101010
-	db	%10001010
-	db	%10001010
-	db	%10101010
-	db	%01001100
 	db	80		;hc
 	db	80		;hcb
 	db	16		;vc
 	db	255		;voff
 three:
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%11101110
-	db 	%10001000
-	db	%11001100
-	db	%10001000
-	db	%10001000
-	db	%11101000
 	db	96		;hc
 	db	96		;hcb
 	db	16		;vc
 	db	255		;voff
 four:
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%01001010
-	db 	%10101010
-	db	%10001110
-	db	%10001010
-	db	%10101010
-	db	%01101010
 	db	112		;hc
 	db	112		;hcb
 	db	16		;vc
@@ -448,35 +418,31 @@ grid:
 ; Object 1
 obj1frames
 ;11
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%01001100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
-	db	%10101010
-	db	%10101100
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
 ;12
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%01001100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
-	db	%10101010
-	db	%10101100
+	db	%01001000
+	db 	%10101010
+	db	%01001010
+	db	%00101110
+	db	%10100010
+	db	%01000010
+
+;13
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
 
 ; Object 2
 obj2frames
 ;21
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	%01001100
 	db 	%11101010
 	db	%10101100
@@ -484,10 +450,6 @@ obj2frames
 	db	%10101010
 	db	%10101100
 ;22
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	%01001100
 	db 	%11101010
 	db	%10101100
@@ -495,13 +457,17 @@ obj2frames
 	db	%10101010
 	db	%10101100
 
+;23
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
+
 ; Object 3
 obj3frames
 ;31
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	%01001100
 	db 	%11101010
 	db	%10101100
@@ -509,10 +475,6 @@ obj3frames
 	db	%10101010
 	db	%10101100
 ;32
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	%01001100
 	db 	%11101010
 	db	%10101100
@@ -520,13 +482,17 @@ obj3frames
 	db	%10101010
 	db	%10101100
 
+;33
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
+
 ; Object 4
 obj4frames
 ;41
-	db	%10000000
-	db	%01000000
-	db	%00100000
-	db	%00010000
 	db	%00001000
 	db 	%00000100
 	db	%00000010
@@ -534,13 +500,17 @@ obj4frames
 	db	%00000010
 	db	%00000100
 ;42
-	db	%00010000
-	db	%00001000
-	db	%00010000
-	db	%00001000
 	db	%01011100
 	db 	%11101010
 	db	%10101100
 	db	%11101010
 	db	%10101010
 	db	%10101100
+
+;43
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
