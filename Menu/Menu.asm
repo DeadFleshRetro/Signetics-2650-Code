@@ -24,25 +24,29 @@ sound			equ	%11000100
 
 effects			equ	$1e80	; location of the 74LS378
 
-object1			equ	$1f04	; mem locations of object/shape 1
+object1			equ	$1f00	; mem locations of object/shape 1
+objoff1			equ	$1f04
 hc1				equ	$1f0a	; hc = Horizontal Coordinate
 hcd1			equ	$1f0b	; hcd = Horizontal Coordinate Duplicate
 vc1				equ	$1f0c	; vc = Vertical Coordinate
 voff1			equ	$1f0d	; voff = Vertical Offset
 
-object2			equ	$1f14
+object2			equ	$1f10
+objoff2			equ	$1f14
 hc2				equ	$1f1a
 hcd2			equ	$1f1b
 vc2				equ	$1f1c
 voff2			equ	$1f1d
 
-object3			equ	$1f24
+object3			equ	$1f20
+objoff3			equ	$1f24
 hc3				equ	$1f2a
 hcd3			equ	$1f2b
 vc3				equ	$1f2c
 voff3			equ	$1f2d
 
-object4			equ	$1f44
+object4			equ	$1f40
+objoff4			equ	$1f44
 hc4				equ	$1f4a
 hcd4			equ	$1f4b
 vc4				equ	$1f4c
@@ -74,6 +78,7 @@ joystick2		equ $1fcd	; location of joystick 2 value
 pausecounter	equ	$1f0e   ; RAM location of the pause counter in scratch memory
 menupos			equ	$1f0f	; location of current menu position offset (from gridstart) in grid memory
 itempointer		equ	$1f1e	; location of menu item pointer for writing shape data 
+joystickcheck	equ	$1f1f	; location for storing the current joystick pot value
 
 ;=============================================================================
 ; PROGRAM CONSTANTS
@@ -83,7 +88,7 @@ itempointer		equ	$1f1e	; location of menu item pointer for writing shape data
 ; instance where they are used. Then, if the value has to be changed, it only
 ; has to be found and changed once.
 
-stdpause		equ	2
+stdpause		equ	130
 movepitch		equ	$20
 leftlimit		equ 29
 rightlimit		equ 149
@@ -92,6 +97,7 @@ bottomlimit		equ 186
 gridtop			equ 0
 gridbottom		equ 32
 menuitem		equ 21
+loops			equ 2
 
 
 ;=============================================================================
@@ -109,7 +115,7 @@ reset:
 	cpsu	stackpointer	; stack pointer=%000
 	cpsl	registerselect	; register bank 0
 	cpsl	withcarry 		; without carry
-	cpsl	compare			; arithmetic compare
+	ppsl	compare			; arithmetic compare
 
 	eorz	r0				; clear register 0
 	stra,r0	menupos			; clear the menu position offset
@@ -121,15 +127,43 @@ reset:
 	lodi,r0	sound			; enable PVI sounds
 	stra,r0	effects			;
 
+	lodi,r0	loops
+	stra,r0	joystickcheck
 
+	bsta,un Vsync0          ; make sure VRST hasn't started
 endless:
-	bsta,un	Stop_sounds		; gosub > stop all sounds
-	bsta,un	Wait_vert_reset	; gosub > wait for the vertical reset
-	bsta,un WriteMenuItems	; gosub > write all the menu items
-	bsta,un	Joystick_1V		; gosub > CHeck joystick 1 and move the menu selector 
-	lodi,r0	stdpause
-	bsta,un	Pause			; gosub > pause
-	bctr,un	endless			; return to the beginning of the endless loop
+	bsta,un Vsync1          ; wait for VRST to start
+	bsta,un	CheckJoystick
+	bsta,un	InitialObjects
+    bsta,un Vsync0
+	lodi,r2	48
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate1
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate2
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate3
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate4
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate5
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate6
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate7
+	bsta,un Wait_obj4_complete
+	bsta,un	Duplicate8
+	bsta,un Wait_obj4_complete
+	bsta,un ThrowObjLocations
+
+;	bsta,un	Duplicates
+;	bsta,un	Stop_sounds		; gosub > stop all sounds
+;	bsta,un	Wait_vert_reset	; gosub > wait for the vertical reset
+;	bsta,un WriteMenuItems	; gosub > write all the menu items
+;	bsta,un	Joystick_1V		; gosub > Check joystick 1 and move the menu selector 
+;	lodi,r0	stdpause
+;	bsta,un	Pause			; gosub > pause
+	bcta,un	endless			; return to the beginning of the endless loop
 
 
 ;===================================================================
@@ -143,23 +177,23 @@ Stop_sounds:
 ;===================================================================
 ; subroutine - Write all the menu items for the current page
 
-WriteMenuItems:
-	bsta,un SetObjLocations	; set the initial object locations
+Duplicates:
 	lodi,r2	18
 	lodi,r1	2
 loopWMI_01:
+	bsta,un Wait_obj4_complete
 	lodi,r3 6
 loopWMI_02:
 	subi,r3 1
 
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 
 	brnr,r3	loopWMI_02
 	brnr,r1 WMI_03
@@ -171,10 +205,167 @@ WMI_03:
 	bctr,un loopWMI_01
 
 ;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate1:
+	lodi,r3 6
+loopD1_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD1_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate2:
+	lodi,r3 6
+loopD2_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD2_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate3:
+	lodi,r3 6
+loopD3_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD3_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate4:
+	lodi,r3 6
+loopD4_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD4_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate5:
+	lodi,r3 6
+loopD5_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD5_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate6:
+	lodi,r3 6
+loopD6_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD6_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate7:
+	lodi,r3 6
+loopD7_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD7_01
+	retc,un
+
+;===================================================================
+; subroutine - Set the shapes for the 1st duplicates
+
+Duplicate8:
+	lodi,r3 6
+loopD8_01:
+	subi,r3 1
+	loda,r0	obj1frames,r2-
+	stra,r0	objoff1,r3
+	loda,r0	obj2frames,r2	
+	stra,r0	objoff2,r3
+	loda,r0	obj3frames,r2
+	stra,r0	objoff3,r3
+	loda,r0	obj4frames,r2
+	stra,r0	objoff4,r3
+	brnr,r3	loopD8_01
+	retc,un
+
+;===================================================================
 ; subroutine - Check vertical pot on Joystick 1
 
+CheckJoystick:
+	loda,r0	joystickcheck
+	subi,r0	1
+	brnr,r0	JC_01
+	bsta,un	Stop_sounds
+	bsta,un	Joystick_1V
+	loda,r0	loops
+	stra,r0	joystickcheck
+
+JC_01:
+	stra,r0	joystickcheck
+	retc,un
+
+
 Joystick_1V
-	bsta,un	Vsync1			; gosub > Vsync1 (wait for the vertical reset to begin)
 	ppsu	flag			; set flag to 1 (read vertical pots) ISN'T THIS WRONG??
 	loda,r0	joystick1		; load the value of joystick1 into register 0
 	comi,r0	$20				; compare the controller value with 32
@@ -193,8 +384,9 @@ joystick_up:
 	stra	gridstart,r1	
 	stra	gridstart,r1+
 	subi,r1	9				; move where we're pointing all the way up to where
-	lodi,r0	$FF				; the new top bar should go and draw it
+	lodi,r0	%00000111		; the new top bar should go and draw it
 	stra	gridstart,r1
+	lodi,r0	%11100000
 	stra	gridstart,r1+
 	subi,r1 1				; move the pointer back to the left top bar
 	stra,r1	menupos			; write it back to the menu offset
@@ -210,8 +402,9 @@ joystick_down:
 	stra	gridstart,r1	
 	stra	gridstart,r1+
 	addi,r1	7				; move where we're pointing to where we want the new bottom bar
-	lodi,r0	$FF				; and draw it
+	lodi,r0	%00000111		; the new top bar should go and draw it
 	stra	gridstart,r1
+	lodi,r0	%11100000
 	stra	gridstart,r1+
 	subi,r1	5				; more where we're pointing back to the now top bar
 	stra,r1	menupos			; write it back to the menu offset
@@ -255,8 +448,8 @@ loopIP_01:					; loop to set every location between the beginning of PVI mem (ob
 Pause:
 	stra,r0	pausecounter
 loopP_01:
-	bsta,un	Wait_vert_reset	; goto subroutine "wait for vertical reset"
-	loda,r0	objectstatus	; clear VRLE and collision bits.
+;	bsta,un	Wait_vert_reset	; goto subroutine "wait for vertical reset"
+;	loda,r0	objectstatus	; clear VRLE and collision bits.
 	loda,r0	pausecounter 	; load pause value into r1
 	bcfr,eq	branchP_01		; if it's not zero, then branch to decrement pause
 	retc,un					; return from sub routine
@@ -274,7 +467,7 @@ Define_objects
 	stra,r0	colours12
 	lodi,r0	%00100100
 	stra,r0	colours34
-	lodi,r0	%01010101
+	lodi,r0	%00000000
 	stra,r0	objectsize
 	retc,un					; return from sub routine
 
@@ -290,19 +483,19 @@ loopDS_02:
     retc,un                 ; return from subroutine
 
 ;===================================================================
-; subroutine  - set the initial object locations
+; subroutine  - set the initial object states
 
-SetObjLocations:
-	lodi,r3	4				; set the decrement counter to 4 (bytes per object)
+InitialObjects:
+	lodi,r3	14				; set the decrement counter to 14 (bytes per object)
 loopSOL_01:
 	loda,r0	one,r3-			; load each byte from the Data statements, including positions, etc.
-	stra,r0	hc1,r3
+	stra,r0	object1,r3
 	loda,r0	two,r3
-	stra,r0	hc2,r3
+	stra,r0	object2,r3
 	loda,r0	three,r3
-	stra,r0	hc3,r3
+	stra,r0	object3,r3
 	loda,r0	four,r3
-	stra,r0	hc4,r3
+	stra,r0	object4,r3
 	brnr,r3	loopSOL_01
 	retc,un					; return from subroutine
 
@@ -310,7 +503,7 @@ loopSOL_01:
 ; subroutine  - throw duplicate object locations off screen
 
 ThrowObjLocations:
-	lodi,r0	128
+	lodi,r0	200
 	stra,r0	hcd1
 	stra,r0	hcd2
 	stra,r0	hcd3
@@ -366,32 +559,72 @@ Wait_obj4_complete
 
 ; Object Data
 one:
-	db	64		;hc
-	db	64		;hcb
-	db	16		;vc
-	db	255		;voff
-
-two:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01000100
+	db 	%11001010
+	db	%01000010
+	db	%01000100
+	db	%01001000
+	db	%11101110
 	db	80		;hc
 	db	80		;hcb
-	db	16		;vc
-	db	255		;voff
+	db	24		;vc
+	db	9		;voff
+
+two:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%01001000
+	db 	%10101010
+	db	%01001010
+	db	%00101110
+	db	%10100010
+	db	%01000010
+	db	88		;hc
+	db	88		;hcb
+	db	24		;vc
+	db	9		;voff
 three:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%11100110
+	db 	%10001000
+	db	%11001100
+	db	%00101010
+	db	%10101010
+	db	%01000100
 	db	96		;hc
 	db	96		;hcb
-	db	16		;vc
-	db	255		;voff
+	db	24		;vc
+	db	9		;voff
 four:
-	db	112		;hc
-	db	112		;hcb
-	db	16		;vc
-	db	255		;voff
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%11100100
+	db 	%00101010
+	db	%00100100
+	db	%01001010
+	db	%01001010
+	db	%01000100
+	db	104		;hc
+	db	104		;hcb
+	db	24		;vc
+	db	9		;voff
 
 ; Grid Data
 grid:
-	dw	%1111111111111111
+	dw	%0000011111100000
 	dw	%0000000000000000
-	dw	%1111111111111111
+	dw	%0000011111100000
 	dw	%0000000000000000
 	dw	%0000000000000000
 	dw	%0000000000000000
@@ -418,99 +651,235 @@ grid:
 ; Object 1
 obj1frames
 ;11
-	db	%01000100
-	db 	%11001010
-	db	%01000010
-	db	%01000100
-	db	%01001000
-	db	%11101110
+	db	%01001100
+	db 	%10101010
+	db	%10001100
+	db	%10001010
+	db	%10101010
+	db	%01101010
 ;12
 	db	%01001000
-	db 	%10101010
-	db	%01001010
-	db	%00101110
-	db	%10100010
-	db	%01000010
-
+	db 	%10101000
+	db	%10101000
+	db	%10101000
+	db	%10101000
+	db	%01001110
 ;13
-	db	%01000100
-	db 	%11001010
-	db	%01000010
-	db	%01000100
+	db	%11001000
+	db 	%10101000
+	db	%11001000
+	db	%10101000
+	db	%10101000
+	db	%11001110
+;14
+	db	%01001110
+	db 	%11100100
+	db	%10100100
+	db	%11100100
+	db	%10100100
+	db	%10101110
+;15
+	db	%10101110
+	db 	%10100010
+	db	%10100100
 	db	%01001000
+	db	%01001000
+	db	%01001110
+;16
+	db	%01001100
+	db 	%10101010
+	db	%10101100
+	db	%10101010
+	db	%11101010
+	db	%01101010
+;17
 	db	%11101110
+	db 	%01000010
+	db	%01000010
+	db	%01000010
+	db	%01001010
+	db	%11100100
+;18
+	db	%01001100
+	db 	%11101010
+	db	%10101100
+	db	%11101010
+	db	%10101010
+	db	%10101100
 
 ; Object 2
 obj2frames
 ;21
-	db	%01001100
-	db 	%11101010
-	db	%10101100
+	db	%01001110
+	db 	%10101010
 	db	%11101010
 	db	%10101010
-	db	%10101100
+	db	%10101010
+	db	%10101010
 ;22
-	db	%01001100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
 	db	%10101010
-	db	%10101100
-
+	db 	%10101110
+	db	%10101110
+	db	%01001110
+	db	%01001010
+	db	%01001010
 ;23
 	db	%01000100
-	db 	%11001010
-	db	%01000010
+	db 	%11101010
+	db	%10101000
+	db	%11101000
+	db	%10101010
+	db	%10100100
+;24
+	db	%11000010
+	db 	%10100010
+	db	%11000100
+	db	%10100100
+	db	%10101000
+	db	%10101000
+;25
 	db	%01000100
-	db	%01001000
-	db	%11101110
+	db 	%10101010
+	db	%10101010
+	db	%10100110
+	db	%10100010
+	db	%01001100
+;26
+	db	%01101110
+	db 	%10000100
+	db	%01000100
+	db	%00100100
+	db	%10100100
+	db	%01000100
+;27
+	db	%10101000
+	db 	%10101000
+	db	%11001000
+	db	%10101000
+	db	%10101000
+	db	%10101110
+;28
+	db	%01001100
+	db 	%10101010
+	db	%10001010
+	db	%10001010
+	db	%10101010
+	db	%01001100
 
 ; Object 3
 obj3frames
 ;31
-	db	%01001100
-	db 	%11101010
+	db	%11001100
+	db 	%10101010
 	db	%10101100
-	db	%11101010
-	db	%10101010
-	db	%10101100
+	db	%10101000
+	db	%10101000
+	db	%11001000
 ;32
-	db	%01001100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
-	db	%10101010
-	db	%10101100
-
+	db	%11001110
+	db 	%10100100
+	db	%11000100
+	db	%10000100
+	db	%10000100
+	db	%10001110
 ;33
+	db	%10100000
+	db 	%10100000
+	db	%11000000
+	db	%10100000
+	db	%10100000
+	db	%10100000
+;34
+	db	%01101110
+	db 	%10001000
+	db	%01001100
+	db	%00101000
+	db	%10101000
+	db	%01001110
+;35
 	db	%01000100
-	db 	%11001010
+	db 	%01001010
 	db	%01000010
 	db	%01000100
-	db	%01001000
+	db	%00000000
+	db	%01000100
+;36
+	db	%10101010
+	db 	%10101010
+	db	%10101010
+	db	%10101010
+	db	%10100100
+	db	%01000100
+;37
+	db	%10101110
+	db 	%11101010
+	db	%11101010
+	db	%11101010
+	db	%10101010
+	db	%10101010
+;38
 	db	%11101110
+	db 	%10001000
+	db	%11001100
+	db	%10001000
+	db	%10001000
+	db	%11101000
 
 ; Object 4
 obj4frames
 ;41
-	db	%00001000
-	db 	%00000100
-	db	%00000010
-	db	%00000001
-	db	%00000010
-	db	%00000100
-;42
-	db	%01011100
-	db 	%11101010
-	db	%10101100
-	db	%11101010
+	db	%11001010
+	db 	%10101010
+	db	%11000100
 	db	%10101010
-	db	%10101100
-
+	db	%10101010
+	db	%10101010
+;42
+	db	%01000110
+	db 	%10101000
+	db	%10000100
+	db	%10000010
+	db	%10101010
+	db	%01000100
 ;43
+	db	%11101010
+	db 	%00101010
+	db	%00101100
+	db	%00101010
+	db	%10101010
+	db	%01001010
+;44
+	db	%01000000
+	db 	%10100000
+	db	%11100000
+	db	%10100000
+	db	%10100000
+	db	%10100000
+;45
 	db	%01000100
-	db 	%11001010
-	db	%01000010
+	db 	%11100100
 	db	%01000100
+	db	%01000100
+	db	%01001110
+	db	%01000100
+;46
+	db	%10101010
+	db 	%10101010
+	db	%10100100
+	db	%11101010
+	db	%11101010
+	db	%11101010
+;47
+	db	%01001100
+	db 	%10101010
+	db	%10101100
+	db	%10101000
+	db	%10101000
 	db	%01001000
-	db	%11101110
+;48
+	db	%01001010
+	db 	%10101010
+	db	%10001110
+	db	%10001010
+	db	%10101010
+	db	%01101010
