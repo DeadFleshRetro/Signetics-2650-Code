@@ -25,24 +25,28 @@ sound			equ	%11000100
 effects			equ	$1e80	; location of the 74LS378
 
 object1			equ	$1f00	; mem locations of object/shape 1
+objoff1			equ	$1f04
 hc1				equ	$1f0a	; hc = Horizontal Coordinate
 hcd1			equ	$1f0b	; hcd = Horizontal Coordinate Duplicate
 vc1				equ	$1f0c	; vc = Vertical Coordinate
 voff1			equ	$1f0d	; voff = Vertical Offset
 
 object2			equ	$1f10
+objoff2			equ	$1f14
 hc2				equ	$1f1a
 hcd2			equ	$1f1b
 vc2				equ	$1f1c
 voff2			equ	$1f1d
 
 object3			equ	$1f20
+objoff3			equ	$1f24
 hc3				equ	$1f2a
 hcd3			equ	$1f2b
 vc3				equ	$1f2c
 voff3			equ	$1f2d
 
 object4			equ	$1f40
+objoff4			equ	$1f44
 hc4				equ	$1f4a
 hcd4			equ	$1f4b
 vc4				equ	$1f4c
@@ -183,13 +187,13 @@ loopWMI_02:
 	subi,r3 1
 
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 
 	brnr,r3	loopWMI_02
 	brnr,r1 WMI_03
@@ -208,13 +212,13 @@ Duplicate1:
 loopD1_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD1_01
 	retc,un
 
@@ -226,13 +230,13 @@ Duplicate2:
 loopD2_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD2_01
 	retc,un
 
@@ -244,13 +248,13 @@ Duplicate3:
 loopD3_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD3_01
 	retc,un
 
@@ -262,13 +266,13 @@ Duplicate4:
 loopD4_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD4_01
 	retc,un
 
@@ -280,13 +284,13 @@ Duplicate5:
 loopD5_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD5_01
 	retc,un
 
@@ -298,13 +302,13 @@ Duplicate6:
 loopD6_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD6_01
 	retc,un
 
@@ -316,13 +320,13 @@ Duplicate7:
 loopD7_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD7_01
 	retc,un
 
@@ -334,13 +338,13 @@ Duplicate8:
 loopD8_01:
 	subi,r3 1
 	loda,r0	obj1frames,r2-
-	stra,r0	object1,r3
+	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
-	stra,r0	object2,r3
+	stra,r0	objoff2,r3
 	loda,r0	obj3frames,r2
-	stra,r0	object3,r3
+	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
-	stra,r0	object4,r3
+	stra,r0	objoff4,r3
 	brnr,r3	loopD8_01
 	retc,un
 
@@ -555,65 +559,65 @@ Wait_obj4_complete
 
 ; Object Data
 one:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
 	db	%01000100
 	db 	%11001010
 	db	%01000010
 	db	%01000100
 	db	%01001000
 	db	%11101110
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	80		;hc
 	db	80		;hcb
-	db	27		;vc
+	db	24		;vc
 	db	9		;voff
 
 two:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
 	db	%01001000
 	db 	%10101010
 	db	%01001010
 	db	%00101110
 	db	%10100010
 	db	%01000010
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	88		;hc
 	db	88		;hcb
-	db	27		;vc
+	db	24		;vc
 	db	9		;voff
 three:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
 	db	%11100110
 	db 	%10001000
 	db	%11001100
 	db	%00101010
 	db	%10101010
 	db	%01000100
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	96		;hc
 	db	96		;hcb
-	db	27		;vc
+	db	24		;vc
 	db	9		;voff
 four:
+	db	%00000000
+	db	%00000000
+	db	%00000000
+	db	%00000000
 	db	%11100100
 	db 	%00101010
 	db	%00100100
 	db	%01001010
 	db	%01001010
 	db	%01000100
-	db	%00000000
-	db	%00000000
-	db	%00000000
-	db	%00000000
 	db	104		;hc
 	db	104		;hcb
-	db	27		;vc
+	db	24		;vc
 	db	9		;voff
 
 ; Grid Data
