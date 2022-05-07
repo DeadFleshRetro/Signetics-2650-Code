@@ -77,8 +77,7 @@ joystick2		equ $1fcd	; location of joystick 2 value
 
 pausecounter	equ	$1f0e   ; RAM location of the pause counter in scratch memory
 menupos			equ	$1f0f	; location of current menu position offset (from gridstart) in grid memory
-itempointer		equ	$1f1e	; location of menu item pointer for writing shape data 
-joystickcheck	equ	$1f1f	; location for storing the current joystick pot value
+joystickcheck	equ	$1f1e	; location for storing the current joystick pot value
 
 ;=============================================================================
 ; PROGRAM CONSTANTS
@@ -127,42 +126,17 @@ reset:
 	lodi,r0	sound			; enable PVI sounds
 	stra,r0	effects			;
 
-	lodi,r0	loops
+	lodi,r0	loops			; store 'loops' into the joystick check counter
 	stra,r0	joystickcheck
 
 	bsta,un Vsync0          ; make sure VRST hasn't started
 endless:
 	bsta,un Vsync1          ; wait for VRST to start
-	bsta,un	CheckJoystick
-	bsta,un	InitialObjects
-    bsta,un Vsync0
-	lodi,r2	48
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate1
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate2
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate3
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate4
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate5
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate6
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate7
-	bsta,un Wait_obj4_complete
-	bsta,un	Duplicate8
-	bsta,un Wait_obj4_complete
-	bsta,un ThrowObjLocations
-
-;	bsta,un	Duplicates
-;	bsta,un	Stop_sounds		; gosub > stop all sounds
-;	bsta,un	Wait_vert_reset	; gosub > wait for the vertical reset
-;	bsta,un WriteMenuItems	; gosub > write all the menu items
-;	bsta,un	Joystick_1V		; gosub > Check joystick 1 and move the menu selector 
-;	lodi,r0	stdpause
-;	bsta,un	Pause			; gosub > pause
+	bsta,un	CheckJoystick	; check the joystick & move the menu selector if needed
+	bsta,un	InitialObjects	; draw the original objects (1st menu item)
+    bsta,un Vsync0			; wait for vertical sync to end
+	bsta,un Duplicates		; draw the duplicate ojects (2nd to 9th menu item)
+	bsta,un ThrowObjLocations	; throw the remaining object duplicates off screen 
 	bcta,un	endless			; return to the beginning of the endless loop
 
 
@@ -178,15 +152,14 @@ Stop_sounds:
 ; subroutine - Write all the menu items for the current page
 
 Duplicates:
-	lodi,r2	18
-	lodi,r1	2
+	lodi,r2	48				; load the overarching shape data pointer into r1 (8 items of 6 rows each)
+	lodi,r1	8				; load the menu item pointer into r1 (8 items)
 loopWMI_01:
-	bsta,un Wait_obj4_complete
-	lodi,r3 6
+	bsta,un Wait_obj4_complete	; wait until object 4 (previous row) is finished
+	lodi,r3 6				; load the individual shape data pointer into r3
 loopWMI_02:
-	subi,r3 1
-
-	loda,r0	obj1frames,r2-
+	subi,r3 1				; decrement the individual shape data pointer
+	loda,r0	obj1frames,r2-	; load shape data and write it to the current object duplicates
 	stra,r0	objoff1,r3
 	loda,r0	obj2frames,r2	
 	stra,r0	objoff2,r3
@@ -194,174 +167,27 @@ loopWMI_02:
 	stra,r0	objoff3,r3
 	loda,r0	obj4frames,r2
 	stra,r0	objoff4,r3
-
-	brnr,r3	loopWMI_02
-	brnr,r1 WMI_03
-;	bsta,un ThrowObjLocations
+	brnr,r3	loopWMI_02		; repeat until the individual shape data pointer is zero
+	brnr,r1 WMI_03			; repeat doing this until menu item pinter is zero
 	retc,un
 WMI_03:	
-	subi,r1	1
-	bsta,un Wait_obj4_complete
+	subi,r1	1				; 
 	bctr,un loopWMI_01
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate1:
-	lodi,r3 6
-loopD1_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD1_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate2:
-	lodi,r3 6
-loopD2_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD2_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate3:
-	lodi,r3 6
-loopD3_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD3_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate4:
-	lodi,r3 6
-loopD4_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD4_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate5:
-	lodi,r3 6
-loopD5_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD5_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate6:
-	lodi,r3 6
-loopD6_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD6_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate7:
-	lodi,r3 6
-loopD7_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD7_01
-	retc,un
-
-;===================================================================
-; subroutine - Set the shapes for the 1st duplicates
-
-Duplicate8:
-	lodi,r3 6
-loopD8_01:
-	subi,r3 1
-	loda,r0	obj1frames,r2-
-	stra,r0	objoff1,r3
-	loda,r0	obj2frames,r2	
-	stra,r0	objoff2,r3
-	loda,r0	obj3frames,r2
-	stra,r0	objoff3,r3
-	loda,r0	obj4frames,r2
-	stra,r0	objoff4,r3
-	brnr,r3	loopD8_01
-	retc,un
 
 ;===================================================================
 ; subroutine - Check vertical pot on Joystick 1
 
 CheckJoystick:
-	loda,r0	joystickcheck
-	subi,r0	1
-	brnr,r0	JC_01
-	bsta,un	Stop_sounds
-	bsta,un	Joystick_1V
-	loda,r0	loops
+	loda,r0	joystickcheck	; check the joystick every 'loops' 'times this routine is called
+	subi,r0	1				; decrement the joystick check counter
+	brnr,r0	JC_01			; store it and return if it's not yet zero
+	bsta,un	Stop_sounds		; stop the sounds
+	bsta,un	Joystick_1V		; check the joystick
+	loda,r0	loops			; load 'loops' back into the joystick check counter
 	stra,r0	joystickcheck
 
 JC_01:
-	stra,r0	joystickcheck
+	stra,r0	joystickcheck	; store the joystick check counter back and return
 	retc,un
 
 
@@ -571,7 +397,7 @@ one:
 	db	%11101110
 	db	80		;hc
 	db	80		;hcb
-	db	24		;vc
+	db	23		;vc
 	db	9		;voff
 
 two:
@@ -587,7 +413,7 @@ two:
 	db	%01000010
 	db	88		;hc
 	db	88		;hcb
-	db	24		;vc
+	db	23		;vc
 	db	9		;voff
 three:
 	db	%00000000
@@ -602,7 +428,7 @@ three:
 	db	%01000100
 	db	96		;hc
 	db	96		;hcb
-	db	24		;vc
+	db	23		;vc
 	db	9		;voff
 four:
 	db	%00000000
@@ -617,7 +443,7 @@ four:
 	db	%01000100
 	db	104		;hc
 	db	104		;hcb
-	db	24		;vc
+	db	23		;vc
 	db	9		;voff
 
 ; Grid Data
