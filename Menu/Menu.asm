@@ -95,7 +95,6 @@ toplimit		equ	30
 bottomlimit		equ 186
 gridtop			equ 0
 gridbottom		equ 32
-menuitem		equ 21
 loops			equ 2
 
 
@@ -137,6 +136,7 @@ endless:
     bsta,un Vsync0			; wait for vertical sync to end
 	bsta,un Duplicates		; draw the duplicate ojects (2nd to 9th menu item)
 	bsta,un ThrowObjLocations	; throw the remaining object duplicates off screen 
+	bsta,un PageNumber		; write the current page number
 	bcta,un	endless			; return to the beginning of the endless loop
 
 
@@ -237,6 +237,32 @@ joystick_down:
 	bsta,un	Play_move_sound	; gosub > Play the movement sound
 	retc,un					; return
 
+;===================================================================
+; subroutine - Write all the menu items for the current page
+
+PageNumber:
+	bsta,un Wait_obj4_complete
+	bsta,un Wait_obj4_complete
+	lodi,r0	134
+	stra,r0	hcd1
+	addi,r0	8
+	stra,r0	hcd2
+	addi,r0	8
+	stra,r0	hcd3
+	addi,r0	8
+	stra,r0	hcd4
+	lodi,r3	6				; set the decrement counter to 6 (bytes per object)
+loopPN_01:
+	loda,r0	pageobj1,r3-			; load each byte from the Data statements, including positions, etc.
+	stra,r0	objoff1,r3
+	loda,r0	pageobj2,r3
+	stra,r0	objoff2,r3
+	loda,r0	pageobj3,r3
+	stra,r0	objoff3,r3
+	loda,r0	pageobj4,r3
+	stra,r0	objoff4,r3
+	brnr,r3	loopPN_01
+	retc,un
 
 ;===================================================================
 ; subroutine - Play the movement sound
@@ -709,3 +735,33 @@ obj4frames
 	db	%10001010
 	db	%10101010
 	db	%01101010
+
+; Page 1
+pageobj1
+	db	%11000100
+	db 	%10101010
+	db	%11001000
+	db	%10001000
+	db	%10001010
+	db	%10000110
+pageobj2
+	db	%00001000
+	db 	%00011000
+	db	%00001000
+	db	%00001000
+	db	%00001000
+	db	%00011100
+pageobj3
+	db	%01001110
+	db 	%10101000
+	db	%10101100
+	db	%10101000
+	db	%10101000
+	db	%01001000
+pageobj4
+	db	%01110000
+	db 	%00010000
+	db	%00010000
+	db	%00100000
+	db	%00100000
+	db	%00100000
